@@ -1,0 +1,20 @@
+.TH N3MAP-JOHNIFY 1 "2011-12-05" "n3map v.0.2.14"
+.SH NAME
+n3map-johnify \- convert NSEC3 records to a \fBjohn\fR(8)-friendly format.
+.SH SYNOPSIS
+.B n3map-johnify
+file [outfile]
+.SH DESCRIPTION
+.B n3map-johnify 
+reads NSEC3 records from a file, and writes them to standard output in a format
+readable by \fRjohn\fR(8). If outfile is specified, the records are written to
+outfile instead of standard output.
+
+.SH NOTES
+\fRjohn\fR(8) needs a special patch that is included with n3map to be able to
+crack NSEC3 records.
+
+.SH "SEE ALSO"
+\fBn3map\fR(1),
+\fBjohn\fR(8),
+\fBn3map-nsec3-lookup\fR(1)

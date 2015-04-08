@@ -1,0 +1,31 @@
+__n3map_complete()
+{
+	local cur prev
+	cur="${COMP_WORDS[COMP_CWORD]}"
+	prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+	case "$prev" in
+	--query-mode)
+		COMPREPLY=( $(compgen -W "A mixed NSEC" -- "$cur") )
+		return 0
+		;;
+	-i|--input|-o|--output|-c|--continue)
+		COMPREPLY=( $(compgen -f "$cur") )	
+		return 0
+		;;
+	esac
+	case "$cur" in
+	-*)
+		COMPREPLY=( $(compgen -W "--aggressive --auto --binary \
+			--continue --end --help --ignore-overlapping --input \
+			--label-counter --ldh --limit-rate --max-retries \
+			--mixed --no-openssl --nsec --nsec3 --omit-soa-check \
+			--output --predict --processes --query-mode \
+			--queue-element-size --quiet --start --timeout \
+			--verbose --version -3 -A -M -N -a -b -c -e -f -h -i \
+			-l -m -n -o -p -q -s -v --" -- "$cur" ) )
+		return 0
+		;;
+	esac
+}
+complete -o default -F __n3map_complete n3map

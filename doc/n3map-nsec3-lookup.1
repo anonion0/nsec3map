@@ -1,0 +1,63 @@
+.TH N3MAP-NSEC3-LOOKUP 1 "2011-12-05" "n3map v.0.2.14"
+.SH NAME
+n3map-nsec3-lookup \- lookup NSEC3 records from a file
+.SH SYNOPSIS
+.B n3map-nsec3-lookup 
+file [-o outfile] [-z zone] [-v]
+.SH DESCRIPTION
+.B n3map-nsec3-lookup
+first loads an NSEC3 chain from the specified file.
+Then, every domain name read from standard input is hashed and an NSEC3 record
+whose hashed owner name matches the hash is searched. If a record is found, the
+cleartext domain name and the coresponding record is written to standard output.
+
+.SS Options
+.TP 
+\fB\-o\fR \fIoutfile\fR
+Write the found records to \fIoutfile\fR instead of standard output.
+
+.TP 
+\fB\-z\fR \fIzone\fR
+If this option is used, every domain name read from standard input is
+interpreted relative to \fIzone\fR. 
+
+.TP 
+\fB\-v\fR
+Be more verbose.
+
+.SH NOTES
+This tool could also be used to crack NSEC3 records by passing guesses for
+domain names to standard input. However, this is not recommended since it is in
+no way optimised for performance. 
+If you want to crack NSEC3 records, you should use a tool more suitable to do
+the job, e.g. \fBjohn\fR(8).
+
+.SH EXAMPLES
+.PP
+Read NSEC3 records from records.nsec3 read domain names relative to example.com
+from standard input:
+.PP
+.RS
+$ n3map-nsec3-lookup records.nsec3 -z example.com
+.RE
+.PP
+Read cleartext fully-qualified domain names from names and write all found NSEC3
+records to out.
+.PP
+.RS
+$ n3map-nsec3-lookup records.nsec3 -o out < names
+.RE
+.PP
+.SH "SEE ALSO"
+\fBn3map\fR(1),
+\fBn3map-johnify\fR(1),
+\fBjohn\fR(8)
+
+.SH BUGS
+.PP
+lot's of em. 
+.PP
+It may use a huge amount of memory depending on the number of NSEC3 records.
+.PP
+Reading large lists of records is slow.
+

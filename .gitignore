@@ -1,0 +1,12 @@
+build/
+
+*.swp
+*~
+
+*.so
+*.o
+*.pyc
+
+tags
+TAGS
+
