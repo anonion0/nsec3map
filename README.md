@@ -45,6 +45,12 @@ no further arguments, `nsec3map` detects automatically whether the zone uses
 NSEC or NSEC3 and uses the corresponding enumeration method. It also looks up
 the zone's nameservers by itself.
 
+Some nameservers do not accept NSEC queries. In such a case, `--query-mode A`
+(short `-A`) can be used instead. For example, to enumerate the root zone, one
+could run the command:
+
+	n3map -v --query-mode A --output root.zone  .
+
 ### NSEC3 Zone Enumeration
 
 The following example shows the enumeration of a NSEC3 chain at example.com
@@ -66,7 +72,29 @@ enumeration once the query rate drops under a certain limit.
 You should also make use of the `--limit-rate` option to reduce stress on the
 nameservers. If you think the enumeration is too slow because of a high
 round-trip time to the nameservers, you can also use a more aggressive mode
-which sends multiple queries simultaneously (`--aggressive` option).
+which sends multiple queries simultaneously (`--aggressive` option). The
+following example shows how to use these options:
+
+	n3map -3pvo example.com.zone --aggressive 16 --limit-rate 100/s example.com
+
+This will cause nsec3map to send a maximum of 16 queries in parallel while at
+the same time keeping the query rate at or below roughly 100 queries per
+second.
+
+It is also possible to continue the enumeration from a partially obtained NSEC3
+(or NSEC) chain, as long as the zone's NSEC3 parameters (salt, iteration count)
+have not been changed:
+
+	n3map -3pv --input example.com.partial --output example.com.zone --ignore-overlapping example.com
+
+This will first read the NSEC3 records from example.com.partial and then
+continue the enumeration, saving the NSEC3 chain to example.com.zone.
+The `--ignore-overlapping` option should be used for large zones, or if it is
+otherwise likely that changes are made to the zone during the enumeration.  If
+specified, nsec3map will not abort the enumeration when it receives an NSEC3
+record which overlaps with another record that was received earlier. Note
+however that you will not get a completely consistent view of the NSEC3 chain
+if you use this option.
 
 ### Cracking NSEC3 Hashes
 
