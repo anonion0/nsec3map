@@ -163,6 +163,10 @@ compile with `make clean <system>` as usual, e.g.:
 
 	make clean linux-x86-64
 
+Later versions use autoconf, in that case run:
+
+	./configure && make
+
 
 Limitations
 -----------

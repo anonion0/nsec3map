@@ -2,10 +2,16 @@
  * Some of this code is based on sha1_gen_fmt_plug.c by Solar Designer
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_nsec3_gen;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_nsec3_gen);
+#else
+
 #include <ctype.h>
 #include <string.h>
 #include <stdint.h>
-#include <openssl/sha.h>
+#include "sha.h"
 
 #include "arch.h"
 #include "params.h"
@@ -25,12 +31,14 @@
 #define MAX_KEYS_PER_CRYPT		1
 
 #define BINARY_SIZE			20
+#define BINARY_ALIGN			4
 #define N3_MAX_SALT_SIZE		255
 #define N3_MAX_ZONE_SIZE		255
 
 
 #define HASH_LENGTH			20
 #define SALT_SIZE			sizeof(struct salt_t)
+#define SALT_ALIGN			1
 
 struct salt_t {
 	uint16_t iterations;
@@ -251,16 +259,14 @@ static void set_key(char *key, int index)
 
 static  char *get_key(int index)
 {
-	int i;
 	saved_key[saved_key_length] = 0;
-	for (i = 0; i < saved_key_length; ++i) {
-		saved_key[i] = tolower(saved_key[i]);
-	}
 	return (char *) saved_key;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	register int i = 0;
 	register uint16_t iterations = saved_salt.iterations;
 	register size_t salt_length =  saved_salt.salt_length;
@@ -277,6 +283,8 @@ static void crypt_all(int count)
 		SHA1_Update(&sha_ctx, saved_salt.salt, salt_length);
 		SHA1_Final((unsigned char *)crypt_out, &sha_ctx);
 	}
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -286,16 +294,13 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_exact(char *source, int index) { return 1; }
 
-static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xF; } 
-static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFF; } 
-static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFF; } 
-static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFFF; } 
-static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFFFF; } 
 static int get_hash_0(int index) { return crypt_out[0] & 0xF; } 
 static int get_hash_1(int index) { return crypt_out[0] & 0xFF; } 
 static int get_hash_2(int index) { return crypt_out[0] & 0xFFF; } 
 static int get_hash_3(int index) { return crypt_out[0] & 0xFFFF; } 
 static int get_hash_4(int index) { return crypt_out[0] & 0xFFFFF; }
+static int get_hash_5(int index) { return crypt_out[0] & 0xFFFFFF; }
+static int get_hash_6(int index) { return crypt_out[0] & 0x7FFFFFF; }
 
 struct fmt_main fmt_nsec3_gen = {
 	{
@@ -306,24 +311,37 @@ struct fmt_main fmt_nsec3_gen = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		0,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		salt,
+#if FMT_MAIN_VERSION > 11
+		{ NULL },
+#endif
+		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -336,10 +354,13 @@ struct fmt_main fmt_nsec3_gen = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_all,
 		cmp_exact
 	}
 };
+#endif  /* plugin */
