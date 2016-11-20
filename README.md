@@ -152,6 +152,11 @@ can then copy this file to the n3map/ directory.
 
 ### John the Ripper Plugin
 
+**Update**: The latest version of
+[JtR-Jumbo](https://github.com/magnumripper/JohnTheRipper) includes the NSEC3
+cracking patch from this project. There is no need to install it separately,
+just follow the build instructions for JtR-Jumbo.
+
 If you want to crack NSEC3 hashes, you also need to patch and install [John the
 Ripper](http://www.openwall.com/john/)
 Version 1.7.8-jumbo8 or later is required. 
