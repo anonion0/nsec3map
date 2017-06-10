@@ -116,6 +116,16 @@ john's different cracking modes, wordlist rules and so on. It is probably a
 good idea to adapt the wordlist and mangling rules to the kind of zone you are
 trying to map.
 
+You can also try to crack NSEC3 records using [hashcat](https://hashcat.net/hashcat/ "hashcat"),
+using hashes converted to a slightly different format:
+
+	n3map-hashcatify example.com.zone example.com.hashcat
+
+The records can then be cracked simply by running `hashcat` on the resulting file:
+
+	hashcat -m 8300 example.com.hashcat
+
+
 
 Installation
 ------------
@@ -157,21 +167,10 @@ can then copy this file to the n3map/ directory.
 cracking patch from this project. There is no need to install it separately,
 just follow the build instructions for JtR-Jumbo.
 
-If you want to crack NSEC3 hashes, you also need to patch and install [John the
-Ripper](http://www.openwall.com/john/)
-Version 1.7.8-jumbo8 or later is required. 
+If you want to crack NSEC3 hashes, you also need [John the Ripper]
+(http://www.openwall.com/john/) vrsion 1.7.8-jumbo8 or later.
 Note that you will need the community-enhanced version of JtR ("jumbo patch"),
-not the normal JtR!
-
-After you unpacked JtR, copy `nsec3_gen_fmt_plug.c` to JtR's src/ directory, and
-compile with `make clean <system>` as usual, e.g.:
-
-	make clean linux-x86-64
-
-Later versions use autoconf, in that case run:
-
-	./configure && make
-
+not the normal JtR! You can also use [hashcat](https://hashcat.net/hashcat/ "hashcat"),
 
 Limitations
 -----------

@@ -1,0 +1,15 @@
+.TH N3MAP-HASHCATIFY 1 "2017-06-10" "n3map v.0.2.14"
+.SH NAME
+n3map-hashcatify \- convert NSEC3 records to a hashcat-friendly format.
+.SH SYNOPSIS
+.B n3map-hashcatify
+file [outfile]
+.SH DESCRIPTION
+.B n3map-hashcatify 
+reads NSEC3 records from a file, and writes them to standard output in a format
+readable by hashcat. If outfile is specified, the records are written to
+outfile instead of standard output.
+
+.SH "SEE ALSO"
+\fBn3map\fR(1),
+\fBn3map-nsec3-lookup\fR(1)
