@@ -25,7 +25,7 @@ def main(argv):
         records_file = rrfile.open_input_rrfile(argv[1])
 
         for nsec3 in records_file.nsec3_reader():
-            nsec3_hash = util.str_to_hex(nsec3.hashed_owner)
+            nsec3_hash = util.base32_ext_hex_encode(nsec3.hashed_owner).lower()
             zone = str(nsec3.zone)
             iterations = "{0:d}".format(nsec3.iterations)
             salt = util.str_to_hex(nsec3.salt)
