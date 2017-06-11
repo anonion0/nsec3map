@@ -10,18 +10,21 @@ def detect_dnssec_type(zone, queryprovider):
     while True:
         dname = name.DomainName(label_gen.next()[0], *zone.labels)
         result = queryprovider.query(dname, rrtype='A')
+
+        # check for NSEC/3 records even if we got a NOERROR response
+        # to try and avoid loops when the zone contains a wildcard domain
+        if len(result.find_NSEC()) > 0:
+            log.info("zone uses NSEC records")
+            return 'nsec'
+        elif len(result.find_NSEC3()) > 0:
+            log.info("zone uses NSEC3 records")
+            return 'nsec3'
+
         if result.status() == "NOERROR":
             log.info("hit an existing owner name")
             continue
         elif result.status() == "NXDOMAIN":
-            if len(result.find_NSEC()) > 0:
-                log.info("zone uses NSEC records")
-                return 'nsec'
-            elif len(result.find_NSEC3()) > 0:
-                log.info("zone uses NSEC3 records")
-                return 'nsec3'
-            else:
-                raise N3MapError, "zone doesn't seem to be DNSSEC-enabled"
+            raise N3MapError, "zone doesn't seem to be DNSSEC-enabled"
         else:
             raise N3MapError, ("unexpected response status: ", result.status())
 
