@@ -167,10 +167,10 @@ can then copy this file to the n3map/ directory.
 cracking patch from this project. There is no need to install it separately,
 just follow the build instructions for JtR-Jumbo.
 
-If you want to crack NSEC3 hashes, you also need [John the Ripper]
-(http://www.openwall.com/john/) vrsion 1.7.8-jumbo8 or later.
-Note that you will need the community-enhanced version of JtR ("jumbo patch"),
-not the normal JtR! You can also use [hashcat](https://hashcat.net/hashcat/ "hashcat"),
+If you want to crack NSEC3 hashes, you also need [John the Ripper](http://www.openwall.com/john/) 
+version 1.7.8-jumbo8 or later. Note that you will need the community-enhanced 
+version of JtR ("jumbo patch"), not the normal JtR! You can also use 
+[hashcat](https://hashcat.net/hashcat/ "hashcat"),
 
 Limitations
 -----------
