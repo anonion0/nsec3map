@@ -17,7 +17,7 @@ from exception import (
 
 
 DEFAULT_PORT = 53
-QR_MEASUREMENTS = 32
+QR_MEASUREMENTS = 256
 
 
 class QueryProvider(object):
