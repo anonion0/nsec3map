@@ -67,6 +67,15 @@ class NSEC3Walker(walker.Walker):
             log.debug2('received NSEC3 RR: ', str(rr))
             if not rr.part_of_zone(self.zone):
                 raise NSEC3WalkError, 'NSEC3 RR not part of zone'
+
+            # check if the record is minimally-covering
+            #  ref 'NSEC3 White Lies':
+            #  https://tools.ietf.org/html/rfc7129#appendix-B
+            if rr.distance_covered() == 2:
+                raise NSEC3WalkError, ('Received minimally-covering NSEC3 record\n',
+                             'This zone likely uses "NSEC3 White Lies" to prevent zone enumeration\n',
+                             '(See https://tools.ietf.org/html/rfc7129#appendix-B)'
+                            )
             was_new = self.nsec3_chain.insert(rr)
             if was_new:
                 log.debug1("discovered: ", str(rr.owner), " ", 

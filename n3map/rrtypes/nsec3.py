@@ -14,6 +14,10 @@ from ..exception import (
 SHA1 = 1
 SHA1_LENGTH = 20
 
+def distance_covered(hashed_owner, next_hashed_owner):
+    return abs(util.str_to_long(next_hashed_owner) -
+                util.str_to_long(hashed_owner))
+
 def covered_by_nsec3_interval(nsec3_hash, hashed_owner, next_hashed_owner):
     if hashed_owner >= next_hashed_owner:
         # this is the last NSEC3 record in a chain
@@ -111,6 +115,10 @@ class NSEC3(rr.RR):
                       (util.str_to_hex(self.salt) if len(self.salt) > 0 else '-'),
                       util.base32_ext_hex_encode(self.next_hashed_owner).lower())),
             ' '.join(self.types)))
+
+    def distance_covered(self):
+        return distance_covered(self.hashed_owner, self.next_hashed_owner)
+
 
 
 def compute_hash(owner_name, salt, iterations, algorithm=SHA1):
