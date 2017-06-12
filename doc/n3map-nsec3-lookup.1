@@ -30,7 +30,7 @@ This tool could also be used to crack NSEC3 records by passing guesses for
 domain names to standard input. However, this is not recommended since it is in
 no way optimised for performance. 
 If you want to crack NSEC3 records, you should use a tool more suitable to do
-the job, e.g. \fBjohn\fR(8).
+the job, e.g. \fBjohn\fR(8) or hashcat.
 
 .SH EXAMPLES
 .PP
@@ -50,6 +50,7 @@ $ n3map-nsec3-lookup records.nsec3 -o out < names
 .PP
 .SH "SEE ALSO"
 \fBn3map\fR(1),
+\fBn3map-hashcatify\fR(1),
 \fBn3map-johnify\fR(1),
 \fBjohn\fR(8)
 
