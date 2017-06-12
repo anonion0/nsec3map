@@ -4,9 +4,11 @@ from distutils.core import setup, Extension
 
 shutil.copyfile("map.py", os.path.join("n3map", "n3map"))
 shutil.copyfile("nsec3-lookup.py", os.path.join("n3map", "n3map-nsec3-lookup"))
+shutil.copyfile("hashcatify.py", os.path.join("n3map", "n3map-hashcatify"))
 shutil.copyfile("johnify.py", os.path.join("n3map", "n3map-johnify"))
 
-for mp in ('doc/n3map.1', 'doc/n3map-johnify.1', 'doc/n3map-nsec3-lookup.1'):
+for mp in ('doc/n3map.1', 'doc/n3map-hashcatify.1', 'doc/n3map-johnify.1',
+        'doc/n3map-nsec3-lookup.1'):
     man_in = open(mp, 'rb')
     man_out = gzip.open(mp + '.gz', 'wb')
     man_out.writelines(man_in)
@@ -25,9 +27,10 @@ setup (name = 'n3map',
                     'n3map.tree'],
         ext_modules = [nsec3hashmod],
         scripts = ['n3map/n3map', 'n3map/n3map-nsec3-lookup',
-            'n3map/n3map-johnify'],
+            'n3map/n3map-johnify', 'n3map/n3map-hashcatify'],
         data_files = [('/usr/local/share/man/man1/', ['doc/n3map.1.gz',
-            'doc/n3map-nsec3-lookup.1.gz', 'doc/n3map-johnify.1.gz'])]
+            'doc/n3map-nsec3-lookup.1.gz', 'doc/n3map-johnify.1.gz',
+            'doc/n3map-hashcatify.1.gz'])]
         )
 
 print "cleaning..."
@@ -35,8 +38,10 @@ print "cleaning..."
 try:
     os.remove("n3map/n3map")
     os.remove("n3map/n3map-nsec3-lookup")
+    os.remove("n3map/n3map-hashcatify")
     os.remove("n3map/n3map-johnify")
     os.remove("doc/n3map.1.gz")
+    os.remove("doc/n3map-hashcatify.1.gz")
     os.remove("doc/n3map-johnify.1.gz")
     os.remove("doc/n3map-nsec3-lookup.1.gz")
 except:
