@@ -28,6 +28,16 @@ def detect_dnssec_type(zone, queryprovider):
         else:
             raise N3MapError, ("unexpected response status: ", result.status())
 
+def check_dnskey(zone, queryprovider):
+    log.info('checking DNSKEY...')
+    res = queryprovider.query(zone, rrtype='DNSKEY')
+    dnskey_owner = res.find_DNSKEY()
+    if dnskey_owner is None:
+        raise N3MapError, ("no DNSKEY RR found at ", zone, 
+                "\nZone is not DNSSEC-enabled.")
+    if dnskey_owner != zone:
+        raise N3MapError, "invalid DNSKEY RR received. Aborting"
+
 def check_soa(zone, queryprovider):
     log.info('checking SOA...')
     res = queryprovider.query(zone, rrtype='SOA')

@@ -57,6 +57,14 @@ class DNSPythonResult(object):
                         r.name.to_wire(file=None, compress=None, origin=None))
         return None
 
+    def find_DNSKEY(self):
+        for r in self._result.answer:
+            if (r.rdclass == dns.rdataclass.IN and
+                    r.rdtype == dns.rdatatype.DNSKEY):
+                return name.domainname_from_wire(
+                        r.name.to_wire(file=None, compress=None, origin=None))
+        return None
+
     def answer_length(self):
         return len(self._result.answer)
 

@@ -169,6 +169,12 @@ Do not check the SOA record of the zone before starting the enumeration. This
 option may be used if you wish to perform no unnecessary queries. However, it
 should be used with caution, especially when enumerating an NSEC zone.
 .TP 
+.B \-\-omit-dnskey-check
+Do not check the DNSKEY record of the zone before starting the enumeration. This
+option may be used if you wish to perform no unnecessary queries. However, it
+should be used with caution, as it may lead to problems when trying to
+enumerate a zone that is not actually DNSSEC-enabled.
+.TP 
 \fB\-h\fR, \fB\-\-help\fR
 Display a help message on standard output and exit successfully.
 .TP

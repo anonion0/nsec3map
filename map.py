@@ -81,6 +81,9 @@ def main(argv):
         if options['soa_check']:
             n3map.walker.check_soa(zone, qprovider)
 
+        if options['dnskey_check']:
+            n3map.walker.check_dnskey(zone, qprovider)
+
         if options['zone_type'] == 'auto':
             options['zone_type'] = n3map.walker.detect_dnssec_type(zone,
                     qprovider)
@@ -213,6 +216,7 @@ def default_options():
             'max_retries' : 5,
             'query_interval' : None,
             'soa_check' : True,
+            'dnskey_check' : True,
             'predict' : False,
             'processes' : _def_num_of_processes(),
             'progress' : True,
@@ -242,6 +246,7 @@ def parse_arguments(argv):
             'nsec',
             'nsec3',
             'omit-soa-check',
+            'omit-dnskey-check',
             'output=',
             'predict',
             'processes=',
@@ -337,6 +342,9 @@ def parse_arguments(argv):
 
         elif opt in ('--omit-soa-check',):
             options['soa_check'] = False
+
+        elif opt in ('--omit-dnskey-check',):
+            options['dnskey_check'] = False
 
         elif opt in ('-f', '--aggressive',):
             try:
@@ -485,6 +493,8 @@ General Options:
       --timeout=N           timeout to wait for a server response, 
                               in miliseconds (default {timeout:d})
       --omit-soa-check      don't check the SOA record of the zone 
+                              before starting enumeration (use with caution).
+      --omit-dnskey-check   don't check the DNSKEY record of the zone 
                               before starting enumeration (use with caution).
 '''.format(qmode=def_opts['query_mode'], processes=def_opts['processes'],
         queue_element_sz=def_opts['queue_element_size'],
