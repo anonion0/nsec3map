@@ -164,6 +164,10 @@ Specifies how long to wait for a response from a DNS server, in milliseconds.
 Specifies how many times to repeat a query if the first attempt has failed due
 to a response timeout.
 .TP
+\fB\-\-detection-attempts\fR=\fIN\fR
+Specifies how many times to try zone type (NSEC/NSEC3) detection. N=0 specifies
+an unlimited number of attempts.
+.TP
 .B \-\-omit-soa-check
 Do not check the SOA record of the zone before starting the enumeration. This
 option may be used if you wish to perform no unnecessary queries. However, it

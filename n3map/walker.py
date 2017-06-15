@@ -4,10 +4,11 @@ from exception import N3MapError
 
 from random import randint
 
-def detect_dnssec_type(zone, queryprovider):
+def detect_dnssec_type(zone, queryprovider, attempts=5):
     log.info("detecting zone type...")
-    label_gen = name.label_generator(name.hex_label,init=randint(0,0xFFFFFFFFFFFFFFFF))
-    while True:
+    i = 0
+    while attempts == 0 or i < attempts:
+        label_gen = name.label_generator(name.hex_label,init=randint(0,0xFFFFFFFFFFFFFFFF))
         dname = name.DomainName(label_gen.next()[0], *zone.labels)
         result = queryprovider.query(dname, rrtype='A')
 
@@ -20,13 +21,15 @@ def detect_dnssec_type(zone, queryprovider):
             log.info("zone uses NSEC3 records")
             return 'nsec3'
 
-        if result.status() == "NOERROR":
-            log.info("hit an existing owner name")
-            continue
-        elif result.status() == "NXDOMAIN":
+        if result.status() == "NXDOMAIN":
             raise N3MapError, "zone doesn't seem to be DNSSEC-enabled"
-        else:
+        elif result.status() != "NOERROR":
             raise N3MapError, ("unexpected response status: ", result.status())
+
+        # result.status() == "NOERROR":
+        log.info("hit an existing owner name")
+        i += 1
+    raise N3MapError, "failed to detect zone type after {0:d} attempt(s), terminating.".format(attempts)
 
 def check_dnskey(zone, queryprovider):
     log.info('checking DNSKEY...')

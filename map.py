@@ -86,7 +86,7 @@ def main(argv):
 
         if options['zone_type'] == 'auto':
             options['zone_type'] = n3map.walker.detect_dnssec_type(zone,
-                    qprovider)
+                    qprovider, options['detection_attempts'])
 
         if options['zone_type'] == 'nsec3':
             (hash_queues, process_pool) = prehash.create_prehash_pool(
@@ -215,6 +215,7 @@ def default_options():
             'timeout' : 2500,
             'max_retries' : 5,
             'query_interval' : None,
+            'detection_attempts' : 5,
             'soa_check' : True,
             'dnskey_check' : True,
             'predict' : False,
@@ -247,6 +248,7 @@ def parse_arguments(argv):
             'nsec3',
             'omit-soa-check',
             'omit-dnskey-check',
+            'detection-attempts=',
             'output=',
             'predict',
             'processes=',
@@ -337,6 +339,14 @@ def parse_arguments(argv):
             except ValueError:
                 invalid_argument(opt, arg)
             if options['max_retries'] < -1:
+                invalid_argument(opt, arg)
+
+        elif opt in ('--detection-attempts',):
+            try:
+                options['detection_attempts'] = int(arg)
+            except ValueError:
+                invalid_argument(opt, arg)
+            if options['detection_attempts'] < 0:
                 invalid_argument(opt, arg)
 
 
@@ -485,20 +495,24 @@ Advanced NSEC3 Options:
       --no-openssl           do not use openssl for hashing (slower)
 
 General Options:
-  -q, --quiet               do not display progress information during enumeration
+  -q, --quiet                do not display progress information during enumeration
       --limit-rate=N{{/s|/m|/h}}
-                            limit the query rate (default = unlimited)
-      --max-retries=N       limit the maximum number of retries when a DNS query
-                              fails. N=-1 means no limit. (default {max_retries:d})
-      --timeout=N           timeout to wait for a server response, 
-                              in miliseconds (default {timeout:d})
-      --omit-soa-check      don't check the SOA record of the zone 
-                              before starting enumeration (use with caution).
-      --omit-dnskey-check   don't check the DNSKEY record of the zone 
-                              before starting enumeration (use with caution).
+                             limit the query rate (default = unlimited)
+      --max-retries=N        limit the maximum number of retries when a DNS query
+                               fails. N=-1 means no limit. (default {max_retries:d})
+      --timeout=N            timeout to wait for a server response, 
+                               in miliseconds (default {timeout:d})
+      --detection-attempts=N limit the maximum number of zone type (NSEC/NSEC3)
+                               detection attempts. N=0 specifies no limit.
+                               (default {detection_attempts:d})
+      --omit-soa-check       don't check the SOA record of the zone 
+                               before starting enumeration (use with caution).
+      --omit-dnskey-check    don't check the DNSKEY record of the zone 
+                               before starting enumeration (use with caution).
 '''.format(qmode=def_opts['query_mode'], processes=def_opts['processes'],
         queue_element_sz=def_opts['queue_element_size'],
-        timeout=def_opts['timeout'], max_retries=def_opts['max_retries'])
+        timeout=def_opts['timeout'], max_retries=def_opts['max_retries'],
+        detection_attempts=def_opts['detection_attempts'])
     )
 
 import cProfile
