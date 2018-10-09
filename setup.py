@@ -30,10 +30,12 @@ setup (name = 'n3map',
             'n3map/n3map-johnify', 'n3map/n3map-hashcatify'],
         data_files = [('/usr/local/share/man/man1/', ['doc/n3map.1.gz',
             'doc/n3map-nsec3-lookup.1.gz', 'doc/n3map-johnify.1.gz',
-            'doc/n3map-hashcatify.1.gz'])]
+            'doc/n3map-hashcatify.1.gz'])],
+        install_requires = ['dnspython>=1.8'],
+        python_requires = '>=2.6,<3.0'
         )
 
-print "cleaning..."
+print ("cleaning...")
 
 try:
     os.remove("n3map/n3map")
