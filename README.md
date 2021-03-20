@@ -160,6 +160,18 @@ This should compile a shared object nsec3hash.so in the build/ directory. You
 can then copy this file to the n3map/ directory.
   
 
+Docker
+--------
+
+Buidling the docker container.
+
+	docker build -t nsec3map
+
+Running n3map or e.g. n3map-hashcatify:
+
+	docker run -it --rm -v "${PWD}:/host" nsec3map -v -o example.com.zone example.com
+	docker run -it --entrypoint n3map-hashcatify --rm -v "${PWD}:/host" nsec3map example.com.zone example.com.hashcat
+
 ### John the Ripper Plugin
 
 **Update**: The latest version of
