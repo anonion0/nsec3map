@@ -165,7 +165,7 @@ Docker
 
 Building the docker container.
 
-	docker build -t nsec3map
+	docker build -t nsec3map .
 
 Running n3map or e.g. n3map-hashcatify:
 
