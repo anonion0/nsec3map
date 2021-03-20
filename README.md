@@ -163,7 +163,7 @@ can then copy this file to the n3map/ directory.
 Docker
 --------
 
-Buidling the docker container.
+Building the docker container.
 
 	docker build -t nsec3map
 
