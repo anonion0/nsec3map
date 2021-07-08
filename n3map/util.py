@@ -3,10 +3,10 @@ import struct
 import base64
 
 # see RFC4648 for details
-b32_to_b32_ext_hex = string.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
-                                      "0123456789ABCDEFGHIJKLMNOPQRSTUV")
-b32_ext_hex_to_b32 = string.maketrans("0123456789ABCDEFGHIJKLMNOPQRSTUV",
-                                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
+b32_to_b32_ext_hex = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
+                                   "0123456789ABCDEFGHIJKLMNOPQRSTUV")
+b32_ext_hex_to_b32 = str.maketrans("0123456789ABCDEFGHIJKLMNOPQRSTUV",
+                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
 def base32_ext_hex_encode(s):
     return base64.b32encode(s).translate(b32_to_b32_ext_hex)
 

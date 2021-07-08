@@ -1,7 +1,7 @@
 import re
 import hashlib
 
-import rr
+from . import rr
 from .. import name
 from .. import vis
 from .. import util
@@ -47,11 +47,11 @@ class NSEC3(rr.RR):
             hash_dn, zone = hashed_owner.split(1)
             hashed_owner = util.base32_ext_hex_decode(hash_dn.labels[0].label)
             if len(hashed_owner) != SHA1_LENGTH:
-                raise NSEC3Error, 'NSEC3 RR: invalid hashed_owner length'
+                raise NSEC3Error('NSEC3 RR: invalid hashed_owner length')
             self.hashed_owner = hashed_owner
             self.zone = zone
         except (InvalidDomainNameError, TypeError, IndexError):
-            raise NSEC3Error, "NSEC3 RR: could not decode hashed owner name"
+            raise NSEC3Error("NSEC3 RR: could not decode hashed owner name")
 
     @property
     def algorithm(self):
@@ -60,7 +60,7 @@ class NSEC3(rr.RR):
     @algorithm.setter
     def algorithm(self, algorithm):
         if not (algorithm & SHA1):
-            raise NSEC3Error, 'NSEC3 RR: unknown hash function'
+            raise NSEC3Error('NSEC3 RR: unknown hash function')
         self._algorithm = algorithm
 
     @property
@@ -70,7 +70,7 @@ class NSEC3(rr.RR):
     @next_hashed_owner.setter
     def next_hashed_owner(self, v):
         if len(v) != SHA1_LENGTH:
-            raise NSEC3Error, 'NSEC3 RR: invalid next_hashed_owner length'
+            raise NSEC3Error('NSEC3 RR: invalid next_hashed_owner length')
         self._next_hashed_owner = v
 
     @property
@@ -80,12 +80,12 @@ class NSEC3(rr.RR):
     @iterations.setter
     def iterations(self, v):
         if v < 0 or v > 2500:
-            raise NSEC3Error, "NSEC3 RR: invalid number of iterations"
+            raise NSEC3Error("NSEC3 RR: invalid number of iterations")
         self._iterations = v
 
     def sanity_check(self):
         if self.hashed_owner == self.next_hashed_owner:
-            raise NSEC3Error, 'NSEC3 RR: invalid owner/next owner'
+            raise NSEC3Error('NSEC3 RR: invalid owner/next owner')
 
     def part_of_zone(self, zone):
         return (zone == self.zone)
@@ -124,7 +124,7 @@ class NSEC3(rr.RR):
 def compute_hash(owner_name, salt, iterations, algorithm=SHA1):
     # see RFC5155 for details
     if not (algorithm & SHA1):
-        raise NSEC3Error, 'unknown hash function'
+        raise NSEC3Error('unknown hash function')
     x = owner_name.to_wire()
     i = 0
     while True:
@@ -158,7 +158,7 @@ def parser():
             else:
                 salt = util.hex_to_str(m.group(4))
             next_hashed_owner = util.base32_ext_hex_decode(m.group(5))
-            types = map(vis.strvis, m.group(6).strip().split(' '))
+            types = list(map(vis.strvis, m.group(6).strip().split(' ')))
         except (TypeError, ValueError):
             raise ParseError
             

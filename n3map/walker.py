@@ -1,6 +1,6 @@
-import log
-import name
-from exception import N3MapError
+from . import log
+from . import name
+from .exception import N3MapError
 
 from random import randint
 
@@ -22,34 +22,34 @@ def detect_dnssec_type(zone, queryprovider, attempts=5):
             return 'nsec3'
 
         if result.status() == "NXDOMAIN":
-            raise N3MapError, "zone doesn't seem to be DNSSEC-enabled"
+            raise N3MapError("zone doesn't seem to be DNSSEC-enabled")
         elif result.status() != "NOERROR":
-            raise N3MapError, ("unexpected response status: ", result.status())
+            raise N3MapError("unexpected response status: ", result.status())
 
         # result.status() == "NOERROR":
         log.info("hit an existing owner name")
         i += 1
-    raise N3MapError, "failed to detect zone type after {0:d} attempt(s), terminating.".format(attempts)
+    raise N3MapError("failed to detect zone type after {0:d} attempt(s), terminating.".format(attempts))
 
 def check_dnskey(zone, queryprovider):
     log.info('checking DNSKEY...')
     res = queryprovider.query(zone, rrtype='DNSKEY')
     dnskey_owner = res.find_DNSKEY()
     if dnskey_owner is None:
-        raise N3MapError, ("no DNSKEY RR found at ", zone, 
+        raise N3MapError("no DNSKEY RR found at ", zone, 
                 "\nZone is not DNSSEC-enabled.")
     if dnskey_owner != zone:
-        raise N3MapError, "invalid DNSKEY RR received. Aborting"
+        raise N3MapError("invalid DNSKEY RR received. Aborting")
 
 def check_soa(zone, queryprovider):
     log.info('checking SOA...')
     res = queryprovider.query(zone, rrtype='SOA')
     soa_owner = res.find_SOA()
     if soa_owner is None:
-        raise N3MapError, ("no SOA RR found at ", zone, 
+        raise N3MapError("no SOA RR found at ", zone, 
                 "\nZone name may be incorrect.")
     if soa_owner != zone:
-        raise N3MapError, "invalid SOA RR received. Aborting"
+        raise N3MapError("invalid SOA RR received. Aborting")
 
 class Walker(object):
     def __init__(self, 

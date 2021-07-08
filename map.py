@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import getopt
 import multiprocessing
@@ -51,14 +51,14 @@ def _query_interval(s):
 
 def check_part_of_zone(rr, zone):
     if not rr.part_of_zone(zone):
-        raise N3MapError, ("not all read records are part of the specified zone")
+        raise N3MapError(("not all read records are part of the specified zone"))
 
         
 def main(argv):
     log.logger = log.Logger()
     try:
         (options, nslist, zone) = parse_arguments(argv)
-    except N3MapError, e:
+    except N3MapError as e:
         log.fatal_exit(2, e)
     output_rrfile = None
     chain = None
@@ -113,9 +113,9 @@ def main(argv):
                     for rr in records_file.nsec_reader():
                         check_part_of_zone(rr, zone)
                         chain.append(rr)
-            except IOError, e:
+            except IOError as e:
                 log.fatal("unable to read input file: \n", str(e))
-            except FileParseError, e:
+            except FileParseError as e:
                 log.fatal("unable to parse input file: \n", str(e))
             finally:
                 if records_file is not None:
@@ -128,7 +128,7 @@ def main(argv):
             else:
                 try:
                     output_rrfile =  rrfile.open_output_rrfile(options['output'])
-                except IOError, e:
+                except IOError as e:
                     log.fatal("unable to open output file: ", str(e))
         
 
@@ -190,9 +190,9 @@ def main(argv):
         if output_rrfile is not None:
             output_rrfile.write_stats(stats)
             
-    except N3MapError, e:
+    except N3MapError as e:
         log.fatal(e)
-    except IOError, e:
+    except IOError as e:
         log.fatal(str(e))
     finally:
         if output_rrfile is not None:
@@ -265,7 +265,7 @@ def parse_arguments(argv):
     opts = '3AMNabc:e:f:hi:lm:no:pqs:v'
     try:
         opts, args = getopt.gnu_getopt(argv[1:], opts, long_opts)
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         log.fatal_exit(2, err, "\n", "Try `",
                 str(os.path.basename(argv[0])), 
                 " --help' for more information.")
@@ -295,7 +295,7 @@ def parse_arguments(argv):
 
         elif opt in ('--label-counter',):
             try:
-                options['label_counter'] = long(arg, 0)
+                options['label_counter'] = int(arg, 0)
             except ValueError:
                 invalid_argument(opt, arg)
             if options['label_counter']  < 0:

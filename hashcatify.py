@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import os
@@ -33,7 +33,7 @@ def main(argv):
             salt = util.str_to_hex(nsec3.salt)
             out.write(":".join((nsec3_hash, "." + zone, salt, iterations)) 
                     + "\n")
-    except (IOError, N3MapError), e:
+    except (IOError, N3MapError) as e:
         log.fatal(e)
 
 

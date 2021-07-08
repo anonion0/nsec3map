@@ -33,7 +33,7 @@ setup (name = 'n3map',
             'doc/n3map-hashcatify.1.gz'])]
         )
 
-print "cleaning..."
+print("cleaning...")
 
 try:
     os.remove("n3map/n3map")

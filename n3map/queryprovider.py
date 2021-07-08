@@ -3,12 +3,12 @@ import socket
 import time
 import itertools
 import threading
-import Queue
+import queue
 
-import vis
-import query
-import log
-from exception import (
+from . import vis
+from . import query
+from . import log
+from .exception import (
         N3MapError,
         InvalidPortError,
         QueryError,
@@ -49,7 +49,7 @@ class QueryProvider(object):
         return query.query(query_dn, ns, rrtype, self.timeout)
 
     def query(self, query_dn, rrtype='A'):
-        ns = self.ns_cycle.next()
+        ns = next(self.ns_cycle)
         self._query_timing(query_dn, rrtype, ns)
         while True:
             # XXX
@@ -63,7 +63,7 @@ class QueryProvider(object):
                 return res
             if isinstance(res, TimeOutError):
                 ns.add_timeouterror(self.max_retries)
-                ns = self.ns_cycle.next()
+                ns = next(self.ns_cycle)
                 continue
             if isinstance(res, QueryError):
                 log.fatal("received bad response from server: ", str(q.ns))
@@ -126,19 +126,19 @@ class AggressiveQueryProvider(QueryProvider):
         self._current_queryid = 0
         self._active_queries = {}
         self._results = {}
-        self._query_queue = Queue.Queue()
-        self._result_queue = Queue.Queue()
+        self._query_queue = queue.Queue()
+        self._result_queue = queue.Queue()
         self._querythreads = []
         self._start_query_threads(num_threads)
 
     def _start_query_threads(self,num=1):
-        for i in xrange(num):
+        for i in range(num):
             qt = QueryThread(self._query_queue, self._result_queue)
             self._querythreads.append(qt)
             qt.start()
 
     def stop(self):
-        for i in xrange(len(self._querythreads)):
+        for i in range(len(self._querythreads)):
             self._query_queue.put(None)
         for qt in self._querythreads:
             qt.join()
@@ -166,9 +166,9 @@ class AggressiveQueryProvider(QueryProvider):
         except TimeOutError:
             try:
                 q.ns.add_timeouterror(self.max_retries)
-                q.ns = self.ns_cycle.next()
+                q.ns = next(self.ns_cycle)
                 self._sendquery(q)
-            except TimeOutError, e:
+            except TimeOutError as e:
                 del self._active_queries[qid]
                 raise e
         except QueryError:
@@ -181,18 +181,18 @@ class AggressiveQueryProvider(QueryProvider):
         while has_responses:
             try:
                 self._checkresult(*self._result_queue.get(False))
-            except Queue.Empty:
+            except queue.Empty:
                 has_responses = False
 
     def collectresponses(self, block=True):
         self._collectresponses(block)
-        res = self._results.items()
+        res = list(self._results.items())
         self._results.clear()
         return res
 
 
     def query_ff(self, query_dn, rrtype='A'):
-        ns = self.ns_cycle.next()
+        ns = next(self.ns_cycle)
         self._query_timing(query_dn, rrtype, ns)
         return self._sendquery(Query(self._gen_query_id(), query_dn, ns, rrtype, self.timeout))
 
@@ -227,7 +227,7 @@ class QueryThread(threading.Thread):
 class NameServer(object):
     def __init__(self, ip, port, name):
         if port < 0 or port > 65535:
-            raise InvalidPortError, str(port)
+            raise InvalidPortError(str(port))
         self.ip = ip
         self.port = port
         self.name = vis.strvis(name)
@@ -240,7 +240,7 @@ class NameServer(object):
             log.warn("timeout reached when waiting for response from ", str(self),
                     ", ", str(retries_left), " retries left")
             if retries_left <= 0:
-                raise TimeOutError, ('no response from server: ' + str(self))
+                raise TimeOutError('no response from server: ' + str(self))
         else:
             log.debug2("timeout reached when waiting for response from ", str(self))
 
@@ -263,8 +263,8 @@ def _resolve(host):
             if info[0] == socket.AF_INET:
                 ip_list.append(info[4][0])
         return ip_list
-    except socket.gaierror, e:
-        raise N3MapError, ("could not resolve host '" + 
+    except socket.gaierror as e:
+        raise N3MapError("could not resolve host '" + 
                 str(host) + "': " + e[1])
 
 
@@ -280,7 +280,7 @@ def nameserver_from_text(*hosts):
                 try:
                     port = int(v)
                 except ValueError:
-                    raise InvalidPortError, str(v)
+                    raise InvalidPortError(str(v))
         if port is None:
             port = DEFAULT_PORT
         lst +=  [NameServer(ip, port, host) for ip in _resolve(host)]

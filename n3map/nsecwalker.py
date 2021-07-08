@@ -1,12 +1,12 @@
-import log
-import name
-import walker
+from . import log
+from . import name
+from . import walker
 
-from exception import N3MapError
+from .exception import N3MapError
 
-from statusline import format_statusline_nsec
+from .statusline import format_statusline_nsec
 
-from exception import (
+from .exception import (
         MaxDomainNameLengthError,
         MaxDomainNameLengthError,
         NSECWalkError
@@ -32,7 +32,7 @@ class NSECWalker(walker.Walker):
         self._set_status_generator()
         try:
             return self._walk_zone()
-        except (KeyboardInterrupt, N3MapError), e:
+        except (KeyboardInterrupt, N3MapError) as e:
             raise e
         finally:
             log.logger.set_status_generator(None,None)
@@ -43,11 +43,11 @@ class NSECWalker(walker.Walker):
         while not self._finished(dname):
             query_dn, recv_nsec = self._retrieve_nsec(dname, covering_nsec)
             if len(recv_nsec) == 0:
-                raise NSECWalkError, ('no NSEC RR received\n',
+                raise NSECWalkError('no NSEC RR received\n',
                     "Maybe the zone doesn't support DNSSEC or uses NSEC3 RRs")
             covering_nsec = self._find_covering_rr(recv_nsec, query_dn)
             if covering_nsec is None:
-                raise NSECWalkError, ("no covering NSEC RR received for domain name ", 
+                raise NSECWalkError("no covering NSEC RR received for domain name ", 
                         str(dname))
 
             log.debug2('covering NSEC RR found: ', str(covering_nsec))
@@ -56,7 +56,7 @@ class NSECWalker(walker.Walker):
             
             if (covering_nsec.owner > covering_nsec.next_owner and
                     covering_nsec.next_owner != self.zone):
-                raise NSECWalkError, ('NSEC owner > next_owner, ', 
+                raise NSECWalkError('NSEC owner > next_owner, ', 
                         'but next_owner != zone')
 
             self.nsec_chain.append(covering_nsec)
@@ -79,7 +79,7 @@ class NSECWalker(walker.Walker):
         for nsec in recv_rr:
             log.debug2('received NSEC RR: ' + str(nsec))
             if not nsec.part_of_zone(self.zone):
-                raise NSECWalkError, "received invalid NSEC RR, not part of zone"
+                raise NSECWalkError("received invalid NSEC RR, not part of zone")
             if nsec.covers(query_dn) or nsec.next_owner == self.zone:
                 covering_nsec = nsec
                 break
@@ -110,7 +110,7 @@ class NSECWalker(walker.Walker):
         end = self._get_end(endname)
         if end is not None:
             if start >= end:
-                raise NSECWalkError, "invalid start / endpoint specified"
+                raise NSECWalkError("invalid start / endpoint specified")
 
         return (start, end)
 
@@ -143,7 +143,7 @@ class NSECWalkerN(NSECWalker):
     
     def _retrieve_nsec(self, dname, last_nsec):
         if self._is_subzone(last_nsec):
-            raise NSECWalkError, ('walked into subzone: ', str(last_nsec.owner),
+            raise NSECWalkError('walked into subzone: ', str(last_nsec.owner),
                     "\ndon't know how to continue enumeration.")
         query_dn = dname
         result = self.queryprovider.query(query_dn, rrtype='NSEC')
@@ -174,13 +174,13 @@ class NSECWalkerA(NSECWalker):
         try:
             query_dn = dname.next_extend_increase(self.ldh)
         except MaxDomainNameLengthError as e:
-            raise NSECWalkError, str(e)
+            raise NSECWalkError(str(e))
         self._check_query_dn(query_dn)
         return query_dn
 
     def _check_query_dn(self, query_dn):
         if not query_dn.part_of_zone(self.zone):
-            raise NSECWalkError, ('unable to increase ' + 
+            raise NSECWalkError('unable to increase ' + 
                     'domain name any more.')
 
 
@@ -208,7 +208,7 @@ class NSECWalkerA(NSECWalker):
                     continue
             elif result.status() != "NXDOMAIN":
                 # some other unexpected status:
-                raise NSECWalkError, ('unexpected response status: ',
+                raise NSECWalkError('unexpected response status: ',
                         result.status())
             else:
                 break
@@ -237,7 +237,7 @@ class NSECWalkerMixed(NSECWalkerA):
                         continue
                 elif result.status() != "NXDOMAIN":
                     # some other unexpected status:
-                    raise NSECWalkError, ('unexpected response status: ',
+                    raise NSECWalkError('unexpected response status: ',
                             result.status())
                 else:
                     break

@@ -1,8 +1,8 @@
 import string
 import struct
 
-import vis
-from exception import (
+from . import vis
+from .exception import (
         InvalidDomainNameError,
         MaxDomainNameLengthError,
         MaxLabelLengthError,
@@ -14,16 +14,16 @@ MAX_LABEL = 63
 # for wire format:
 MAX_DOMAINNAME = 255
 
-ascii_upper_to_lower = string.maketrans(string.ascii_uppercase, 
-                                        string.ascii_lowercase)
+ascii_upper_to_lower = str.maketrans(string.ascii_uppercase,
+                                     string.ascii_lowercase)
 
-range_ld = map(ord, "0123456789abcdefghijklmnopqrstuvwxyz")
-range_ldh = map(ord, "-0123456789abcdefghijklmnopqrstuvwxyz")
+range_ld = list(map(ord, "0123456789abcdefghijklmnopqrstuvwxyz"))
+range_ldh = list(map(ord, "-0123456789abcdefghijklmnopqrstuvwxyz"))
 
 def hex_label(l):
     return "{0:x}".format(l)
 
-def label_generator(label_fun, init=0L):
+def label_generator(label_fun, init=0):
     l = init
     while True:
         lblstr = label_fun(l)
@@ -47,7 +47,7 @@ def fqdn_from_text(s):
     return domainname_from_text(s)
 
 def domainname_from_text(s):
-    return DomainName(*map(Label, _split_domainname_str(s)))
+    return DomainName(*list(map(Label, _split_domainname_str(s))))
 
 def domainname_from_wire(ws):
     wire_bytes = []
@@ -57,11 +57,11 @@ def domainname_from_wire(ws):
         while True:
             n = wire_bytes.pop()
             lbl = []
-            for i in xrange(n):
+            for i in range(n):
                 try:
                     lbl.append(wire_bytes.pop())
                 except IndexError:
-                    raise InvalidDomainNameError, 'invalid wire format'
+                    raise InvalidDomainNameError('invalid wire format')
             labels.append(lbl)
     except IndexError:
         return DomainName(*[Label(struct.pack('B'*len(lbl), *lbl)) for lbl in
@@ -191,7 +191,7 @@ class Label(object):
         return 1 + len(self.label)
 
     def _canonicalize(self):
-        # don't use locale-aware lowercase function, we only want 
+        # don't use locale-aware lowercase function, we only want
         # to convert the ASCII characters
         self.label = self.label.translate(ascii_upper_to_lower)
 
@@ -213,7 +213,7 @@ class Label(object):
 class DomainName(object):
     def __init__(self, *labels):
         if len(labels) == 0:
-            raise InvalidDomainNameError, 'no label specified'
+            raise InvalidDomainNameError('no label specified')
         self.labels = list(labels)
         if self.wire_length() > MAX_DOMAINNAME:
             raise MaxDomainNameLengthError
@@ -245,7 +245,7 @@ class DomainName(object):
             else:
                 newlabels.append(label)
         if not increased:
-            raise MaxDomainNameLengthError, ('cannot increase domain name')
+            raise MaxDomainNameLengthError(('cannot increase domain name'))
         return DomainName(*newlabels)
 
     def covered_by(self, owner, next_owner):
@@ -281,7 +281,7 @@ class DomainName(object):
         o = other.labels[:]
         s.reverse()
         o.reverse()
-        for i in xrange(0, max((len(s), len(o)))):
+        for i in range(0, max((len(s), len(o)))):
             if i >= len(s):
                 return -1
             if i >= len(o):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import os
@@ -44,7 +44,7 @@ def main(argv):
         nsec3_chain = {}
         try:
             opts, args = getopt.gnu_getopt(argv[1:], "z:o:v")
-        except getopt.GetoptError, err:
+        except getopt.GetoptError as err:
             usage(argv)
         for opt, arg in opts:
             if opt == '-z':
@@ -68,7 +68,7 @@ def main(argv):
                 salt = nsec3.salt
                 iterations = nsec3.iterations
             elif salt != nsec3.salt or iterations != nsec3.iterations:
-                raise ZoneChangedError, "zone salt or iterations not unique!"
+                raise ZoneChangedError("zone salt or iterations not unique!")
             nsec3_chain[nsec3.hashed_owner] = nsec3;
         records_file.close()
         log.info("read {0:d} records. ready for input!".format(len(nsec3_chain)))
@@ -78,9 +78,9 @@ def main(argv):
         if sys.stdin.isatty():
             try:
                 while True:
-                    line = raw_input()
+                    line = input()
                     lookup_nsec3(nsec3_chain, salt, iterations, zone, line, out)
-            except (EOFError), e:
+            except (EOFError) as e:
                 pass
         else:
             for line in sys.stdin:
@@ -89,7 +89,7 @@ def main(argv):
         log.info( "queries total = {0:d}\nhits = {1:d}".format(
             stats['queries'], stats['found']))
 
-    except (IOError, N3MapError), e:
+    except (IOError, N3MapError) as e:
         log.fatal(e)
     finally:
         if out is not None:

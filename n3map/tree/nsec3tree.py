@@ -1,4 +1,4 @@
-import rbtree
+from . import rbtree
 from .. import log
 from ..util import str_to_long
 from ..exception import N3MapError
@@ -30,7 +30,7 @@ class NSEC3Tree(rbtree.RBTree):
         super(NSEC3Tree, self).__init__(node_type)
         self.last = None
         self.hash_max = hash_max
-        self.covered_distance = long(0)
+        self.covered_distance = int(0)
         self.ignore_overlapping = False
 
     def find_interval(self, k):

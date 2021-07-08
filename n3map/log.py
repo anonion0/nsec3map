@@ -56,7 +56,7 @@ class Logger(object):
         self._file.write(msg)
 
     def _compile_msg(self, *msg):
-        l = map(str, msg)
+        l = list(map(str, msg))
         l.append("\n")
         return ''.join(l)
 
@@ -197,7 +197,7 @@ class ProgressLineLogger(Logger):
             buf = array.array('h', [0, 0, 0, 0]) 
             res = fcntl.ioctl(self._file.fileno(), termios.TIOCGWINSZ, buf)
             if res != 0:
-                raise EnvironmentError, "ioctl() failed"
+                raise EnvironmentError("ioctl() failed")
             self._screen_height = buf[0]
             self._screen_width = buf[1]
         else:

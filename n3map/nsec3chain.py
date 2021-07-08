@@ -1,7 +1,7 @@
-import log
-import util
-from exception import ZoneChangedError
-from tree.nsec3tree import NSEC3Tree, OverLapError
+from . import log
+from . import util
+from .exception import ZoneChangedError
+from .tree.nsec3tree import NSEC3Tree, OverLapError
 
 class NSEC3Chain(object):
     def __init__(self, iterable=None, ignore_overlapping=False):
@@ -24,7 +24,7 @@ class NSEC3Chain(object):
             self.salt = nsec3.salt
             log.debug2("salt = 0x", util.str_to_hex(self.salt))
         elif self.salt != nsec3.salt:
-            raise ZoneChangedError, "NSEC3 salt changed"
+            raise ZoneChangedError("NSEC3 salt changed")
         else:
             nsec3.salt = self.salt
     
@@ -33,13 +33,13 @@ class NSEC3Chain(object):
             self.iterations = nsec3.iterations
             log.debug2("number of iterations = ", self.iterations)
         elif self.iterations != nsec3.iterations:
-            raise ZoneChangedError, "NSEC3 number of iterations changed"
+            raise ZoneChangedError("NSEC3 number of iterations changed")
 
     def _check_zone(self, nsec3):
         if self.zone is None:
             self.zone = nsec3.zone
         elif self.zone != nsec3.zone:
-                raise ZoneChangedError, "NSEC3 zone name changed"
+                raise ZoneChangedError("NSEC3 zone name changed")
         else:
             nsec3.zone = self.zone
 
@@ -58,7 +58,7 @@ class NSEC3Chain(object):
         try:
             new, was_updated = self.tree.insert(key, None, int_end)
         except OverLapError:
-            raise ZoneChangedError, ("NSEC3 record overlaps with " + 
+            raise ZoneChangedError("NSEC3 record overlaps with " + 
                     "another NSEC3 record")
         return (not was_updated)
 

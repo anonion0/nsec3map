@@ -1,6 +1,6 @@
 import re
 
-import rr
+from . import rr
 from .. import name
 from .. import vis
 from ..exception import NSECError, ParseError
@@ -14,7 +14,7 @@ class NSEC(rr.RR):
     
     def sanity_check(self):
         if self.owner == self.next_owner:
-            raise NSECError, 'invalid NSEC record, owner == next_owner'
+            raise NSECError('invalid NSEC record, owner == next_owner')
 
     def covers(self, dname):
         return dname.covered_by(self.owner, self.next_owner)
@@ -39,7 +39,7 @@ def parser():
             if m is None:
                 return None
             next_owner = name.unvis_domainname(m.group(1))
-            types = map(vis.strvis, m.group(3).strip().split(' '))
+            types = list(map(vis.strvis, m.group(3).strip().split(' ')))
         except ValueError:
                 raise ParseError
         return NSEC(owner, ttl, cls, next_owner, types)
