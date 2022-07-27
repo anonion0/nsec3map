@@ -230,7 +230,7 @@ class NameServer(object):
             raise InvalidPortError(str(port))
         self.ip = ip
         self.port = port
-        self.name = vis.strvis(name)
+        self.name = vis.strvis(name.encode()).decode()
         self.retries = 0
 
     def add_timeouterror(self, max_retries):
