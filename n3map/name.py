@@ -1,5 +1,6 @@
 import string
 import struct
+import functools
 
 from . import vis
 from .exception import (
@@ -14,14 +15,11 @@ MAX_LABEL = 63
 # for wire format:
 MAX_DOMAINNAME = 255
 
-ascii_upper_to_lower = str.maketrans(string.ascii_uppercase,
-                                     string.ascii_lowercase)
-
-range_ld = list(map(ord, "0123456789abcdefghijklmnopqrstuvwxyz"))
-range_ldh = list(map(ord, "-0123456789abcdefghijklmnopqrstuvwxyz"))
+range_ld = b"0123456789abcdefghijklmnopqrstuvwxyz"
+range_ldh = b"-0123456789abcdefghijklmnopqrstuvwxyz"
 
 def hex_label(l):
-    return "{0:x}".format(l)
+    return "{0:x}".format(l).encode('ascii')
 
 def label_generator(label_fun, init=0):
     l = init
@@ -31,10 +29,10 @@ def label_generator(label_fun, init=0):
         l += 1
 
 def _split_domainname_str(s):
-    if s == '.':
-        return ("",)
+    if s == b'.':
+        return (b"",)
     else:
-        return s.split('.')
+        return s.split(b'.')
 
 
 def unvis_domainname(s):
@@ -47,7 +45,11 @@ def fqdn_from_text(s):
     return domainname_from_text(s)
 
 def domainname_from_text(s):
-    return DomainName(*list(map(Label, _split_domainname_str(s))))
+    try:
+        bstr = s.encode('ascii')
+        return DomainName(*list(map(Label, _split_domainname_str(bstr))))
+    except UnicodeError:
+        raise InvalidDomainNameError('invalid encoding')
 
 def domainname_from_wire(ws):
     wire_bytes = []
@@ -68,11 +70,12 @@ def domainname_from_wire(ws):
             labels])
 
 def _label_ldh():
-    return Label(chr(range_ld[0]))
+    return Label(range_ld[0:1])
 
 def _label_binary():
-    return Label("\x00")
+    return Label(b"\x00")
 
+@functools.total_ordering
 class Label(object):
     def __init__(self, labelstr):
         if len(labelstr) > MAX_LABEL:
@@ -87,7 +90,7 @@ class Label(object):
             return self.forward_next_binary(extend)
 
     def _extend_labelstr_binary(self, labelstr):
-        return labelstr + '\x00'
+        return labelstr + b'\x00'
 
     def forward_next_binary(self, extend):
         if extend:
@@ -121,7 +124,7 @@ class Label(object):
         return struct.pack('B'*len(s), *reversed(s))
 
     def _extend_labelstr_ldh(self, labelstr):
-        return labelstr + chr(range_ld[0])
+        return labelstr + range_ld[0:1]
 
     def forward_next_ldh(self, extend):
         if extend:
@@ -141,16 +144,16 @@ class Label(object):
         if ldh:
             for i, c in enumerate(self.label):
                 if i == 0 or i == len(self.label) - 1:
-                    if ord(c) != range_ld[-1]:
+                    if c != range_ld[-1]:
                         return False
                 else:
-                    if ord(c) != range_ldh[-1]:
+                    if c != range_ldh[-1]:
                         return False
             return True
 
         else:
             for c in self.label:
-                if ord(c) != 0xff:
+                if c != 0xff:
                     return False
             return True
 
@@ -193,7 +196,8 @@ class Label(object):
     def _canonicalize(self):
         # don't use locale-aware lowercase function, we only want
         # to convert the ASCII characters
-        self.label = self.label.translate(ascii_upper_to_lower)
+        # since label is a bytes object, this will only convert ASCII characters
+        self.label = self.label.lower()
 
     def to_wire(self):
         # see RFC1035, section 3.1 "Name space definitions" for more info
@@ -202,14 +206,17 @@ class Label(object):
         blist[len(blist):] = struct.unpack('B'*len(self.label), self.label)
         return struct.pack('B'*len(blist), *blist)
 
-    def __cmp__(self, other):
-        return cmp(self.label, other.label)
+    def __lt__(self, other):
+        return self.label < other.label
+
+    def __eq__(self, other):
+        return self.label == other.label
 
     def __str__(self):
-        return vis.strvis(self.label)
+        return vis.strvis(self.label).decode("ascii")
 
 
-
+@functools.total_ordering
 class DomainName(object):
     def __init__(self, *labels):
         if len(labels) == 0:
@@ -275,22 +282,52 @@ class DomainName(object):
             i += 1
         return (DomainName(*first_labels), DomainName(*second_labels))
 
-
-    def __cmp__(self, other):
+    def __lt__(self, other):
         s = self.labels[:]
         o = other.labels[:]
         s.reverse()
         o.reverse()
         for i in range(0, max((len(s), len(o)))):
             if i >= len(s):
-                return -1
+                return True
             if i >= len(o):
-                return 1
+                return False
             if s[i] < o[i]:
-                return -1
+                return True
             elif s[i] > o[i]:
-                return 1
-        return 0
+                return False
+        return False
+
+    def __eq__(self, other):
+        s = self.labels[:]
+        o = other.labels[:]
+        s.reverse()
+        o.reverse()
+        for i in range(0, max((len(s), len(o)))):
+            if i >= len(s):
+                return False
+            if i >= len(o):
+                return False
+            if s[i] != o[i]:
+                return False
+        return True
+
+
+    #def __cmp__(self, other):
+    #    s = self.labels[:]
+    #    o = other.labels[:]
+    #    s.reverse()
+    #    o.reverse()
+    #    for i in range(0, max((len(s), len(o)))):
+    #        if i >= len(s):
+    #            return -1
+    #        if i >= len(o):
+    #            return 1
+    #        if s[i] < o[i]:
+    #            return -1
+    #        elif s[i] > o[i]:
+    #            return 1
+    #    return 0
 
     def is_root(self):
         return (len(self.labels) == 1 and self.labels[0].label == "")
@@ -301,7 +338,7 @@ class DomainName(object):
         for label in self.labels:
             labellist.append(label.to_wire())
 
-        return ''.join(labellist)
+        return b''.join(labellist)
 
     def __str__(self):
         if self.is_root():

@@ -12,6 +12,7 @@ import dns.rdatatype
 from . import name
 from .rrtypes import nsec3
 from .rrtypes import nsec
+from . import rrtypes
 from . import exception
 from . import log
 
@@ -114,8 +115,8 @@ def dnspython_query(dname, ns_ip, ns_port, rrtype, timeout):
 
     q = dns.message.make_query(qname, 
                                rrtype, 
-                               want_dnssec=True)
-    q.payload = 4096
+                               want_dnssec=True,
+                               payload = 4096)
     r = dns.query.udp(q, ns_ip, port=ns_port, timeout=timeout,
             ignore_unexpected=True)
 
