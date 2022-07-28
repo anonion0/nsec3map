@@ -108,7 +108,7 @@ class NSEC3Walker(walker.Walker):
     def _map_zone(self):
         generator = name.label_generator(name.hex_label, self._label_counter_init)
         while self.nsec3_chain.size() == 0:
-            query_dn = name.DomainName(generator.next()[0], *self.zone.labels)
+            query_dn = name.DomainName(next(generator)[0], *self.zone.labels)
             res = self.queryprovider.query(query_dn, rrtype='A')
             self._process_query_result(query_dn, res)
         self._start_prehashing()
@@ -152,7 +152,7 @@ class NSEC3Walker(walker.Walker):
                     return dn,dn_hash
 
             self.stats['tested_hashes'] += len(self._prehash_list)
-            hashes, label_counter_state = self._hash_queues.next().recv()
+            hashes, label_counter_state = next(self._hash_queues).recv()
             if self._label_counter_state < label_counter_state:
                 self._label_counter_state = label_counter_state
             self._prehash_list = hashes
