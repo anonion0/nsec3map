@@ -5,6 +5,7 @@ import bz2
 from . import log
 from .rrtypes import nsec
 from .rrtypes import nsec3
+from . import rrtypes
 from .exception import (
         FileParseError,
         MaxDomainNameLengthError,
@@ -18,18 +19,18 @@ _comment_pattern = r'^\s*([;#].*)?$'
 
 def _open(filename, mode):
     if filename.endswith(".gz"):
-        return gzip.open(filename, mode)
+        return gzip.open(filename, mode, encoding="utf-8")
     elif filename.endswith(".bz2"):
-        return bz2.BZ2File(filename, mode)
-    return open(filename, mode)
+        return bz2.BZ2File(filename, mode, encoding="utf-8")
+    return open(filename, mode, encoding="utf-8")
 
 
 
 def open_output_rrfile(filename):
-    return RRFile(_open(filename, "wb+"))
+    return RRFile(_open(filename, "w+"))
 
 def open_input_rrfile(filename):
-    return RRFile(_open(filename, "rb"))
+    return RRFile(_open(filename, "r"))
 
 class RRFile(object):
     def __init__(self, f):

@@ -38,7 +38,7 @@ def parser():
             m = p_nsec.match(rest)
             if m is None:
                 return None
-            next_owner = name.unvis_domainname(m.group(1))
+            next_owner = name.unvis_domainname(m.group(1).encode("ascii"))
             types = list(map(vis.strvis, m.group(3).strip().split(' ')))
         except ValueError:
                 raise ParseError

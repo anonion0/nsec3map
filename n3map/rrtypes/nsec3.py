@@ -146,7 +146,7 @@ def parser():
             res = rr_parse(s)
             if res is None:
                 return None
-            owner, ttl, cls, rest = res 
+            owner, ttl, cls, rest = res
             m = p_nsec3.match(rest)
             if m is None:
                 return None
@@ -159,10 +159,12 @@ def parser():
             else:
                 salt = util.hex_to_str(m.group(4))
             next_hashed_owner = util.base32_ext_hex_decode(m.group(5))
-            types = list(map(vis.strvis, m.group(6).strip().split(' ')))
+            types = m.group(6).strip()
+            if not types.isprintable():
+                raise ValueError
+            types = types.split(' ')
         except (TypeError, ValueError):
             raise ParseError
-            
         return NSEC3(owner, ttl, cls, algorithm, flags, iterations, salt, next_hashed_owner, types)
     return nsec3_from_text
 

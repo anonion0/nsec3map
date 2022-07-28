@@ -4,14 +4,15 @@ import struct
 
 hex_chars = b"0123456789abcdefABCDEF"
 
+ascii_printable = string.printable.encode("ascii")
+
 def vis(char):
     """ Returns True if a character is safe to print
     
     char:    the character to test
     
     """
-    return (chr(char) in string.printable)
-
+    return char in ascii_printable
 
 def strvis(s):
     """Encode a string so it is safe to print on a tty
@@ -27,7 +28,7 @@ def strvis(s):
             if c == struct.unpack('B', b'\\')[0]:
                 enc_str.append(b'\\')
         else:
-            enc_str.append(b"\\x{0:02x}".format(c))
+            enc_str.append(b"\\x%02x" % c)
     return b''.join(enc_str)
 
 
@@ -42,21 +43,21 @@ def strunvis(s):
     push = None
     while i < len(s):
         if push is not None:
-            push = push + s[i]
+            push = push + bytes([s[i]])
             if push == b'\\\\':
                 d_s.append(b'\\')
                 push = None
             elif len(push) == 4:
                 if push[:2] == b'\\x' and all([c in hex_chars for c in
                     push[2:]]):
-                    d_s.append(chr(int(push[2:], 16)))
+                    d_s.append(bytes([int(push[2:], 16)]))
                     push = None
                 else:
                     raise ValueError
-        elif s[i] == b'\\':
+        elif bytes([s[i]]) == b'\\':
             push = b'\\'
         else:
-            d_s.append(s[i])
+            d_s.append(bytes([s[i]]))
         i += 1
     
     if push is not None:
