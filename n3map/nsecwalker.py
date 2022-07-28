@@ -143,7 +143,8 @@ class NSECWalkerN(NSECWalker):
     def _retrieve_nsec(self, dname, last_nsec):
         if self._is_subzone(last_nsec):
             raise NSECWalkError('walked into subzone: ', str(last_nsec.owner),
-                    "\ndon't know how to continue enumeration.")
+                    "\ndon't know how to continue enumeration.\n",
+                    "Try using mixed or 'A' query mode instead.")
         query_dn = dname
         result = self.queryprovider.query(query_dn, rrtype='NSEC')
         recv_nsec = result.find_NSEC(in_answer=True)
