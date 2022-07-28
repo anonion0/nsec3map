@@ -32,25 +32,3 @@ def hex_to_str(s):
         raise ValueError
 
     return struct.pack('B'*len(bytes_list), *bytes_list)
-    
-def str_to_long(s):
-    length = len(s)
-    num_ints,num_bytes = divmod(length, 4)
-    intlist = struct.unpack('>' + 'I'*num_ints, s[:num_ints*4])
-    l = 0 
-    for i in intlist:
-        l = (l << 32) + i
-    if num_bytes > 0:
-        bytelist = struct.unpack('B'*num_bytes, s[-num_bytes:])
-        for b in bytelist:
-            l = (l << 8) + b
-    return l
-
-def long_to_str(l):
-    label = []
-    while l > 0:
-        byte = l & 0xff
-        label.insert(0,struct.pack('B', byte))
-        l >>= 8
-    return ''.join(label)
-

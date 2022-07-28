@@ -1,6 +1,5 @@
 from . import rbtree
 from .. import log
-from ..util import str_to_long
 from ..exception import N3MapError
 
 class NSEC3TreeNode(rbtree.RBTreeNode):
@@ -14,8 +13,8 @@ class NSEC3TreeNode(rbtree.RBTreeNode):
         return k >= self.key and k <= self.int_end
 
     def covered_distance(self, hash_max):
-        l1 = str_to_long(self.key)
-        l2 = str_to_long(self.int_end)
+        l1 = int.from_bytes(self.key, "big")
+        l2 = int.from_bytes(self.int_end, "big")
         if self.is_last():
             return hash_max - l1 + l2
         return l2-l1

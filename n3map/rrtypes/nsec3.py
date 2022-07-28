@@ -15,8 +15,8 @@ SHA1 = 1
 SHA1_LENGTH = 20
 
 def distance_covered(hashed_owner, next_hashed_owner):
-    return abs(util.str_to_long(next_hashed_owner) -
-                util.str_to_long(hashed_owner))
+    return abs(int.from_bytes(next_hashed_owner, "big") -
+                int.from_bytes(hashed_owner, "big"))
 
 def covered_by_nsec3_interval(nsec3_hash, hashed_owner, next_hashed_owner):
     if hashed_owner >= next_hashed_owner:
