@@ -39,7 +39,10 @@ def parser():
             if m is None:
                 return None
             next_owner = name.unvis_domainname(m.group(1).encode("ascii"))
-            types = list(map(vis.strvis, m.group(3).strip().split(' ')))
+            types = m.group(3).strip()
+            if not types.isprintable():
+                raise ValueError
+            types = types.split(' ')
         except ValueError:
                 raise ParseError
         return NSEC(owner, ttl, cls, next_owner, types)

@@ -18,8 +18,7 @@ class NSECWalker(walker.Walker):
         super(NSECWalker, self).__init__(zone, queryprovider, output_file,
                 stats)
         if nsec_chain is not None:
-            self.nsec_chain = list(sorted(nsec_chain, cmp=lambda x,y:
-                cmp(x.owner, y.owner)))
+            self.nsec_chain = list(sorted(nsec_chain, key=lambda x: x.owner))
             self._write_chain(self.nsec_chain)
         else:
             self.nsec_chain = []
