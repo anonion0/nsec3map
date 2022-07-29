@@ -1,48 +1,74 @@
-import n3map.version
-import sys, os, shutil, gzip
-from distutils.core import setup, Extension
+from setuptools import setup, find_packages, Extension
+import pathlib
 
-shutil.copyfile("map.py", os.path.join("n3map", "n3map"))
-shutil.copyfile("nsec3-lookup.py", os.path.join("n3map", "n3map-nsec3-lookup"))
-shutil.copyfile("hashcatify.py", os.path.join("n3map", "n3map-hashcatify"))
-shutil.copyfile("johnify.py", os.path.join("n3map", "n3map-johnify"))
+wd = pathlib.Path(__file__).parent.resolve()
 
-for mp in ('doc/n3map.1', 'doc/n3map-hashcatify.1', 'doc/n3map-johnify.1',
-        'doc/n3map-nsec3-lookup.1'):
-    man_in = open(mp, 'rb')
-    man_out = gzip.open(mp + '.gz', 'wb')
-    man_out.writelines(man_in)
-    man_out.close()
-    man_in.close()
+long_desc = ( wd / "README.md").read_text(encoding="utf-8")
 
-nsec3hashmod = Extension('n3map.nsec3hash',
-                            sources = ['n3map/nsec3hash.c'],
-                            libraries = ['ssl'],
-                            extra_compile_args=['-O3'])
+# https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/
+setup(
+        name = "n3map",
+        description = "Enumerate DNS zones based on DNSSEC records",
+        long_description = long_desc,
+        long_description_content_type = "text/markdown",
+        url = "https://github.com/anonion0/nsec3map",
+        author = "Ralf Sager",
+        author_email = "nsec3map(at)3fnc.org",
+        packages = find_packages(),
+        ext_modules = [
+            Extension(
+                name = "n3map.nsec3hash",
+                sources = ["n3map/nsec3hash.c"],
+                libraries = ["crypto"],
+                extra_compile_args = ["-O3"],
+                ),
+            ],
+        entry_points = {
+            'console_scripts': [
+                    'n3map=n3map.map:main',
+                    'johnify=n3map.johnify:main',
+                    'hashcatify=n3map.hashcatify:main',
+                    'nsec3-lookup=n3map.nsec3lookup:main',
+                ],
 
-setup (name = 'n3map',
-        version = n3map.version.version_str(),
-        packages = ['n3map', 
-                    'n3map.rrtypes',
-                    'n3map.tree'],
-        ext_modules = [nsec3hashmod],
-        scripts = ['n3map/n3map', 'n3map/n3map-nsec3-lookup',
-            'n3map/n3map-johnify', 'n3map/n3map-hashcatify'],
-        data_files = [('/usr/local/share/man/man1/', ['doc/n3map.1.gz',
-            'doc/n3map-nsec3-lookup.1.gz', 'doc/n3map-johnify.1.gz',
-            'doc/n3map-hashcatify.1.gz'])]
-        )
-
-print("cleaning...")
-
-try:
-    os.remove("n3map/n3map")
-    os.remove("n3map/n3map-nsec3-lookup")
-    os.remove("n3map/n3map-hashcatify")
-    os.remove("n3map/n3map-johnify")
-    os.remove("doc/n3map.1.gz")
-    os.remove("doc/n3map-hashcatify.1.gz")
-    os.remove("doc/n3map-johnify.1.gz")
-    os.remove("doc/n3map-nsec3-lookup.1.gz")
-except:
-    pass
+            },
+        python_requires = ">=3.9",
+        install_requires = [
+            "dnspython",
+            ],
+        extras_require = {
+            'prediction' : [
+                "numpy",
+                "scipy",
+                ],
+            },
+        data_files = [
+            ('share/man/man1', [
+                'doc/n3map.1',
+                'doc/n3map-nsec3-lookup.1',
+                'doc/n3map-johnify.1',
+                'doc/n3map-hashcatify.1',
+                ]
+            ),
+        ],
+        license='GPLv3',
+        keywords = 'security network cryptography dns dnssec nsec nsec3 scanner',
+        classifiers = [
+            "Development Status :: 5 - Production/Stable",
+            "Environment :: Console",
+            "Intended Audience :: Developers",
+            "Intended Audience :: Information Technology",
+            "Intended Audience :: Science/Research",
+            "Intended Audience :: System Administrators",
+            "Intended Audience :: Telecommunications Industry",
+            "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+            "Operating System :: POSIX",
+            "Programming Language :: C",
+            "Programming Language :: Python :: 3",
+            "Topic :: Security",
+            "Topic :: Security :: Cryptography",
+            "Topic :: System :: Networking",
+            "Topic :: Internet :: Name Service (DNS)",
+            "Topic :: Internet",
+            ],
+    )
