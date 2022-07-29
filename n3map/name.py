@@ -19,7 +19,15 @@ range_ld = b"0123456789abcdefghijklmnopqrstuvwxyz"
 range_ldh = b"-0123456789abcdefghijklmnopqrstuvwxyz"
 
 def hex_label(l):
-    return "{0:x}".format(l).encode('ascii')
+    return b"%x" % l
+
+#def binary_label(l: int):
+#    return l.to_bytes((l.bit_length() + 7) // 8, 'big')
+
+## XXX: much slower than hex_label
+#def b32_label(l: int):
+#     return base64.b32encode(l.to_bytes((l.bit_length() + 7) // 8,
+#         'big')).rstrip(b'=')
 
 def label_generator(label_fun, init=0):
     l = init
@@ -201,10 +209,7 @@ class Label(object):
 
     def to_wire(self):
         # see RFC1035, section 3.1 "Name space definitions" for more info
-        blist = []
-        blist.append(len(self.label))
-        blist[len(blist):] = struct.unpack('B'*len(self.label), self.label)
-        return struct.pack('B'*len(blist), *blist)
+        return bytes([len(self.label)]) + self.label
 
     def __lt__(self, other):
         return self.label < other.label
@@ -312,33 +317,15 @@ class DomainName(object):
                 return False
         return True
 
-
-    #def __cmp__(self, other):
-    #    s = self.labels[:]
-    #    o = other.labels[:]
-    #    s.reverse()
-    #    o.reverse()
-    #    for i in range(0, max((len(s), len(o)))):
-    #        if i >= len(s):
-    #            return -1
-    #        if i >= len(o):
-    #            return 1
-    #        if s[i] < o[i]:
-    #            return -1
-    #        elif s[i] > o[i]:
-    #            return 1
-    #    return 0
-
     def is_root(self):
         return (len(self.labels) == 1 and self.labels[0].label == b"")
 
     def to_wire(self):
         # see RFC1035, section 3.1 "Name space definitions" for more info
-        labellist = []
+        wirelabels = bytearray()
         for label in self.labels:
-            labellist.append(label.to_wire())
-
-        return b''.join(labellist)
+            wirelabels += label.to_wire()
+        return bytes(wirelabels)
 
     def __str__(self):
         if self.is_root():

@@ -3,6 +3,7 @@ import struct
 import base64
 
 # see RFC4648 for details
+# TODO: python3.10 has support for this included: base64.b32hexencode()
 b32_to_b32_ext_hex = bytes.maketrans(b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
                                      b"0123456789ABCDEFGHIJKLMNOPQRSTUV")
 b32_ext_hex_to_b32 = bytes.maketrans(b"0123456789ABCDEFGHIJKLMNOPQRSTUV",
