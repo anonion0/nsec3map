@@ -59,7 +59,7 @@ class NSECWalker(walker.Walker):
                         'but next_owner != zone')
 
             self.nsec_chain.append(covering_nsec)
-            log.info('discovered owner: ', str(covering_nsec.owner),
+            log.debug1('discovered owner: ', str(covering_nsec.owner),
                     "\t", ' '.join(covering_nsec.types))
             log.update()
             dname = covering_nsec.next_owner
