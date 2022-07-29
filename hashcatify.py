@@ -27,6 +27,7 @@ def main(argv):
 
         for nsec3 in records_file.nsec3_reader():
             nsec3_hash = util.base32_ext_hex_encode(nsec3.hashed_owner).lower()
+            nsec3_hash = nsec3_hash.decode()
             zone = str(nsec3.zone)
             zone = re.sub('\.$', '', zone)
             iterations = "{0:d}".format(nsec3.iterations)
