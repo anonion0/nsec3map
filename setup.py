@@ -26,9 +26,9 @@ setup(
         entry_points = {
             'console_scripts': [
                     'n3map=n3map.map:main',
-                    'johnify=n3map.johnify:main',
-                    'hashcatify=n3map.hashcatify:main',
-                    'nsec3-lookup=n3map.nsec3lookup:main',
+                    'n3map-johnify=n3map.johnify:main',
+                    'n3map-hashcatify=n3map.hashcatify:main',
+                    'n3map-nsec3-lookup=n3map.nsec3lookup:main',
                 ],
 
             },
