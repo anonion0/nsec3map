@@ -330,7 +330,7 @@ class DomainName(object):
     #    return 0
 
     def is_root(self):
-        return (len(self.labels) == 1 and self.labels[0].label == "")
+        return (len(self.labels) == 1 and self.labels[0].label == b"")
 
     def to_wire(self):
         # see RFC1035, section 3.1 "Name space definitions" for more info
