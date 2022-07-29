@@ -1,19 +1,18 @@
 nsec3map - DNSSEC Zone Enumerator
 =================================
 
-`nsec3map` is a tool that can enumerate DNS zone entries based on DNSSEC
-[NSEC](http://www.ietf.org/rfc/rfc4034.txt "Resource Records for the DNS Security Extensions") or 
-[NSEC3](http://www.ietf.org/rfc/rfc5155.txt "DNS Security (DNSSEC) Hashed Authenticated Denial of Existence") 
-record chains.  It can be used to discover hosts in a DNS zone quickly and
-with a minimum amount of queries if said zone is DNSSEC-enabled.
+`n3map` is a tool that can enumerate DNS zone entries based on DNSSEC
+[NSEC][NSEC] or [NSEC3][NSEC3] record chains.  It can be used to discover hosts
+in a DNS zone quickly and with a minimum amount of queries if said zone is
+DNSSEC-enabled.
 
-`nsec3map` was written primarily to show that NSEC3 does not offer meaningful
-protection against zone enumeration. 
+`n3map` was written primarily to show that NSEC3 does not offer meaningful
+protection against zone enumeration.
 Although originally only intended as a PoC and written in Python, it is
 actually quite fast and able to enumerate even large zones (with a million or
 more entries) in a short time given adequate hardware.
 
-It also includes a simple John the Ripper plugin that can be used to crack the
+It also includes a simple [John the Ripper][JtR] plugin that can be used to crack the
 obtained NSEC3 hashes.
 
 Usage Examples
@@ -28,6 +27,7 @@ The most basic example is to enumerate a particular zone (e.g. example.com) and
 store the retrieved NSEC/NSEC3 records in a file example.com.zone:
 
 	$ n3map -v -o example.com.zone example.com
+	n3map 0.4.0: starting mapping of example.com
 	looking up nameservers for zone example.com.
 	using nameserver: 199.43.133.53:53 (b.iana-servers.net.)
 	using nameserver: 199.43.132.53:53 (a.iana-servers.net.)
@@ -108,15 +108,15 @@ JtR patch:
 	n3map-johnify example.com.zone example.com.john
 
 The records can then be cracked simply by running  `john` on the resulting file:
-	
+
 	john example.com.john
 
-Refer to the JtR documentation for more information on how to make use of 
+Refer to the JtR documentation for more information on how to make use of
 john's different cracking modes, wordlist rules and so on. It is probably a
 good idea to adapt the wordlist and mangling rules to the kind of zone you are
 trying to map.
 
-You can also try to crack NSEC3 records using [hashcat](https://hashcat.net/hashcat/ "hashcat"),
+You can also try to crack NSEC3 records using [hashcat][hashcat],
 using hashes converted to a slightly different format:
 
 	n3map-hashcatify example.com.zone example.com.hashcat
@@ -132,43 +132,55 @@ Installation
 
 Dependencies:
 
-  * Python 2.6.x or 2.7.x
-  * dnspython >= 1.8
-  * openssl >= 0.9.8
+  * Python >= 3.9
+  * dnspython >= 2.0
+  * OpenSSL (libcrypto) >= 3.0.0
   * Optionally numpy and scipy for zone size prediction (recommended)
-  
+
 On a Debian system, just run
 
-	sudo apt-get install python python-dev python-dnspython libssl libssl-dev python-numpy python-scipy
+	sudo apt-get install python3 python3-dev python3-dnspython \
+		 libssl1.1 libssl-dev python3-numpy python3-scipy
 
 Installation:
 
-After unpacking the tarball, run:
+After cloning the repositry / unpacking the tarball, cd into the project
+directory and run:
 
-	sudo python setup.py install
-  
+	python3 -m pip install .[predict]
+
 This will compile the extension modules(s) and install the scripts, python
 modules as well as the man pages.
-  
+It will make a user install if you are not root.
+
+If you do not care about NSEC3 zone size prediction and don't want
+numpy and scipy installed, you can use:
+
+	python3 -m pip install .
+
+Alternatively, you can install it w/o pip:
+
+	sudo python3 setup.py install
+
 Alternatively, you can also run nsec3map directly from the source directory
-without installing it system-wide. If you want to use OpenSSL accelerated
+without installing it.
+If you want to use OpenSSL accelerated
 hashing however, you still need to build the extension module:
 
-	python setup.py build_ext
+	python3 setup.py build_ext
 
 This should compile a shared object nsec3hash.so in the build/ directory. You
 can then copy this file to the n3map/ directory.
-  
+
 
 ### John the Ripper Plugin
 
-**Update**: The latest version of
-[JtR-Jumbo](https://github.com/magnumripper/JohnTheRipper) includes the NSEC3
+**Update**: The latest version of [John the Ripper jumbo][JtR] includes the NSEC3
 cracking patch from this project. There is no need to install it separately,
 just follow the build instructions for JtR-Jumbo. Using the latest source
 version is recommended.
 
-Alternatively, you can also use [hashcat](https://hashcat.net/hashcat/ "hashcat").
+Alternatively, you can also use [hashcat][hashcat].
 
 Limitations
 -----------
@@ -179,3 +191,8 @@ Limitations
 * ...
 
 (remember that nsec3map is still mostly a PoC tool...)
+
+[NSEC]: http://www.ietf.org/rfc/rfc4034.txt "Resource Records for the DNS Security Extensions"
+[NSEC3]: http://www.ietf.org/rfc/rfc5155.txt "DNS Security (DNSSEC) Hashed Authenticated Denial of Existence"
+[JtR]: https://github.com/openwall/john "John the Ripper (Jumbo)"
+[hashcat]: https://hashcat.net/hashcat/ "hashcat"
