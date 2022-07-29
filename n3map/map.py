@@ -74,9 +74,7 @@ def n3map_main(argv):
     process_pool = None
     hash_queues = None
     if options['progress']:
-        loglevel = log.logger.loglevel
-        log.logger = log.ProgressLineLogger()
-        log.logger.loglevel = loglevel
+        log.logger = log.ProgressLineLogger.from_logger(log.logger)
 
     log.info("n3map {}: starting mapping of {}".format(
         n3map.__version__, str(zone)))
@@ -233,7 +231,7 @@ def default_options():
             'processes' : _def_num_of_processes(),
             'progress' : True,
             'queue_element_size' : 256,
-            'use_openssl' : True
+            'use_openssl' : True,
             }
     return opts
 
@@ -270,6 +268,7 @@ def parse_arguments(argv):
             'timeout=',
             'no-openssl',
             'verbose',
+            'color=',
             'version'
     ]
     options = default_options()
@@ -415,6 +414,12 @@ def parse_arguments(argv):
         elif opt in ('-v', '--verbose'):
             log.logger.loglevel += 1
 
+        elif opt in ('--color',):
+            try:
+                log.logger.set_colors(arg)
+            except ValueError:
+                invalid_argument(opt, arg)
+
         elif opt in ('--version'):
             version()
             sys.exit(0)
@@ -453,6 +458,8 @@ Options:
   -h, --help                 show this help message and exit
   -v, --verbose              increase verbosity level (use multiple times for
                                greater effect)
+      --color=WHEN           colorize output; WHEN can be 'auto' (default),
+                               'always' or 'never'.
 
 Enumeration:
   -a, --auto                 autodetect enumeration method (default)
