@@ -436,7 +436,7 @@ def parse_arguments(argv):
     return (options, ns_names, zone)
 
 def version():
-    sys.stdout.write("nsec3map " + __version__ + "\n")
+    sys.stdout.write("nsec3map " + n3map.__version__ + "\n")
 
 
 def usage(program_name):
