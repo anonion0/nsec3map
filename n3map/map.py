@@ -66,6 +66,8 @@ def n3map_main(argv):
         log.logger = log.ProgressLineLogger()
         log.logger.loglevel = loglevel
 
+    log.info("n3map {}: starting mapping of {}".format(
+        n3map.__version__, str(zone)))
     try:
         stats = {}
         options['timeout'] /= 1000.0
@@ -180,11 +182,10 @@ def n3map_main(argv):
             walker.walk()
             elapsed = timedelta(seconds=time.monotonic() - starttime)
             log.info("finished mapping of {0:s} in {1:s}".format( str(zone), str(elapsed)))
-        
 
         if output_rrfile is not None:
             output_rrfile.write_stats(stats)
-            
+
     except N3MapError as e:
         log.fatal(e)
     except IOError as e:
