@@ -37,7 +37,7 @@ setup(
             "dnspython",
             ],
         extras_require = {
-            'prediction' : [
+            'predict' : [
                 "numpy",
                 "scipy",
                 ],
