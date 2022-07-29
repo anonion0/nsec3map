@@ -40,7 +40,7 @@ class QueryProvider(object):
 
     def _query_timing(self, query_dn, rrtype, ns):
         self._wait_query_interval()
-        self._qr_measurements.append(time.time())
+        self._qr_measurements.append(time.monotonic())
         return ns
 
     def _sendquery(self, query_dn, ns, rrtype):
@@ -85,12 +85,12 @@ class QueryProvider(object):
             # the loop is needed because time.sleep()
             # may be interrupted by a signal
             while True:
-                diff = time.time() - self._last_query_time
+                diff = time.monotonic() - self._last_query_time
                 if diff < 0 or diff >= self.query_interval:
                     break
                 time.sleep(self.query_interval - diff)
 
-        self._last_query_time = time.time()
+        self._last_query_time = time.monotonic()
         
 
 class Query(object):

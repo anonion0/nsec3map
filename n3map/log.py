@@ -150,7 +150,7 @@ class ProgressLineLogger(Logger):
         self._write_log(''.join(self._buffer))
         self._buffer.clear()
         self._file.flush()
-        self._last_flush = time.time()
+        self._last_flush = time.monotonic()
 
     def do_log(self, level, *msg):
         if level == LOG_FATAL:
@@ -168,7 +168,7 @@ class ProgressLineLogger(Logger):
         if self._generator is not None:
             gen = self._generator
             self._current_status = gen()
-        if not force and time.time() - self._last_flush < self._flush_interval:
+        if not force and time.monotonic() - self._last_flush < self._flush_interval:
             return
         self.flush()
 

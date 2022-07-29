@@ -176,9 +176,9 @@ def n3map_main(argv):
                                      output_file=output_rrfile)
 
         if walker is not None:
-            starttime = time.time()
+            starttime = time.monotonic()
             walker.walk()
-            elapsed = timedelta(seconds=time.time() - starttime)
+            elapsed = timedelta(seconds=time.monotonic() - starttime)
             log.info("finished mapping of {0:s} in {1:s}".format( str(zone), str(elapsed)))
         
 
