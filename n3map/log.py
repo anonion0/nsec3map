@@ -287,8 +287,14 @@ class ColorSchemeDefault:
             colors = Colors()
         self.WARN = colors.BRIGHT_YELLOW
         self.ERROR = colors.BRIGHT_RED
-        self.PROGRESS = colors.CYAN
-        self.NUMBERS = colors.BRIGHT_GREEN
+        self.PROGRESSBAR = colors.CYAN
+        self.PROGRESS = colors.BRIGHT_CYAN
+        self.RECORDS = colors.BRIGHT_GREEN
+        self.NUMBERS = colors.CYAN
+        self.ZONE = colors.BRIGHT_BLUE
+        self.DECO = colors.BRIGHT_MAGENTA
+
+        self.RESET = colors.RESET
         self.colors = colors
 
     def wrap(self, color, s):
@@ -296,4 +302,14 @@ class ColorSchemeDefault:
 
     def wrap_list(self, color, l):
         return self.colors.wrap_list(color, l)
+
+    def gradient(self, ratio):
+        if ratio < 0.33:
+            return self.colors.BRIGHT_CYAN
+        elif ratio < 0.66:
+            return self.colors.BRIGHT_GREEN
+        elif ratio < 1.0:
+            return self.colors.BRIGHT_YELLOW
+        else:
+            return self.colors.BRIGHT_RED
 

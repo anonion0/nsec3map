@@ -21,8 +21,8 @@ QR_MEASUREMENTS = 256
 
 
 class QueryProvider(object):
-    def __init__(self, 
-                 ns_list, 
+    def __init__(self,
+                 ns_list,
                  timeout,
                  max_retries,
                  stats=None,
