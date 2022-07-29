@@ -49,12 +49,24 @@ def check_part_of_zone(rr, zone):
     if not rr.part_of_zone(zone):
         raise N3MapError(("not all read records are part of the specified zone"))
 
+def get_nameservers(zone, ns_names=None):
+    if ns_names is not None:
+        return queryprovider.nameserver_from_text(*ns_names)
+
+    ns_names = query_ns_records(zone)
+    nslist = queryprovider.nameserver_from_text(*ns_names)
+    for ns in nslist:
+        log.info("using nameserver: ", str(ns))
+    return nslist
+
+
 def n3map_main(argv):
     log.logger = log.Logger()
     try:
-        (options, nslist, zone) = parse_arguments(argv)
+        (options, ns_names, zone) = parse_arguments(argv)
     except N3MapError as e:
         log.fatal_exit(2, e)
+
     output_rrfile = None
     chain = None
     label_counter = None
@@ -68,6 +80,9 @@ def n3map_main(argv):
 
     log.info("n3map {}: starting mapping of {}".format(
         n3map.__version__, str(zone)))
+
+    nslist = get_nameservers(zone, ns_names)
+
     try:
         stats = {}
         options['timeout'] /= 1000.0
@@ -415,14 +430,10 @@ def parse_arguments(argv):
         zone = n3map.name.fqdn_from_text(args[-1])
         if len(args) >= 2:
             ns_names = args[:-1]
-            nslist = queryprovider.nameserver_from_text(*ns_names)
         else:
-            ns_names = query_ns_records(zone)
-            nslist = queryprovider.nameserver_from_text(*ns_names)
-            for ns in nslist:
-                log.info("using nameserver: ", str(ns))
+            ns_names = None
 
-    return (options, nslist, zone)
+    return (options, ns_names, zone)
 
 def version():
     sys.stdout.write("nsec3map " + __version__ + "\n")
