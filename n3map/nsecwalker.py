@@ -42,8 +42,15 @@ class NSECWalker(walker.Walker):
         while not self._finished(dname):
             query_dn, recv_nsec = self._retrieve_nsec(dname, covering_nsec)
             if len(recv_nsec) == 0:
-                raise NSECWalkError('no NSEC RR received\n',
-                    "Maybe the zone doesn't support DNSSEC or uses NSEC3 RRs")
+                msg = [
+                    'no NSEC RR received',
+                    "Maybe the zone doesn't support DNSSEC or uses NSEC3 RRs",
+                    ]
+                if isinstance(self, NSECWalkerN) or isinstance(self,
+                        NSECWalkerMixed):
+                    msg.append("or the server does not allow NSEC queries.")
+                    msg.append("Perhaps try using --query-mode=A")
+                raise NSECWalkError('\n'.join(msg))
             covering_nsec = self._find_covering_rr(recv_nsec, query_dn)
             if covering_nsec is None:
                 raise NSECWalkError("no covering NSEC RR received for domain name ", 
