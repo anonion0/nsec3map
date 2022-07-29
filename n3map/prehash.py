@@ -11,7 +11,7 @@ from .name import DomainName,Label
 
 HAS_NSEC3HASH = False
 try:
-    import n3map.nsec3hash
+    from . import nsec3hash
     HAS_NSEC3HASH = True
 except ImportError:
     pass
@@ -58,7 +58,7 @@ class PreHashProcess(multiprocessing.Process):
         self.num_processes = num_processes
 
         if self.use_cext and not HAS_NSEC3HASH:
-            log.error("failed to import n3map.nsec3hash module\n",
+            log.error("failed to import nsec3hash module\n",
                     "falling back to python-based hashing")
             self.use_cext = False
 
@@ -92,7 +92,7 @@ class PreHashProcess(multiprocessing.Process):
                 self.iterations)
 
     def _hash_cext(self, dn):
-        return n3map.nsec3hash.compute_hash(dn.to_wire(), self.salt,
+        return nsec3hash.compute_hash(dn.to_wire(), self.salt,
                 self.iterations)
 
     def _precompute_hashes(self, hash_func):
