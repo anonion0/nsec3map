@@ -15,6 +15,8 @@ more entries) in a short time given adequate hardware.
 It also includes a simple [John the Ripper][JtR] plugin that can be used to crack the
 obtained NSEC3 hashes.
 
+![n3map screenshot](screenshot.png)
+
 Usage Examples
 --------------
 
