@@ -27,7 +27,20 @@ class TimeOutError(N3MapError):
     def __str__(self):
         return 'timeout: ' + ''.join(map(str, self.args))
 
+class UnexpectedResponseStatus(N3MapError):
+    def __init__(self, status):
+        self.status = status
+
+    def __str__(self):
+        return 'received unexpected response status ' + str(self.status)
+
+class MaxRetriesError(N3MapError):
+    def __str__(self):
+        return 'timeout: ' + ''.join(map(str, self.args))
+
 class QueryError(N3MapError):
+    def __str__(self):
+        return 'received bad response'
     pass
 
 class InvalidDomainNameError(N3MapError):

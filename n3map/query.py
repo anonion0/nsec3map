@@ -109,12 +109,11 @@ class DNSPythonResult(object):
         return nsec3
 
 def dnspython_query(dname, ns_ip, ns_port, rrtype, timeout):
-    
     # XXX:
     qname = dns.name.from_wire(dname.to_wire(), 0)[0]
 
-    q = dns.message.make_query(qname, 
-                               rrtype, 
+    q = dns.message.make_query(qname,
+                               rrtype,
                                want_dnssec=True,
                                payload = 4096)
     r = dns.query.udp(q, ns_ip, port=ns_port, timeout=timeout,
@@ -125,11 +124,14 @@ def dnspython_query(dname, ns_ip, ns_port, rrtype, timeout):
 
 def query(dname, ns, rrtype, timeout):
     try:
-        return dnspython_query(dname, ns.ip, ns.port, rrtype, timeout)
+        res = dnspython_query(dname, ns.ip, ns.port, rrtype, timeout)
     except dns.exception.Timeout:
         return exception.TimeOutError()
     except dns.query.BadResponse:
         return exception.QueryError()
+    if res.status() != 'NOERROR' and res.status() != 'NXDOMAIN':
+        return exception.UnexpectedResponseStatus(res.status())
+    return res
 
 def query_ns_records(zone):
     try:

@@ -12,7 +12,9 @@ from .exception import (
         N3MapError,
         InvalidPortError,
         QueryError,
-        TimeOutError
+        TimeOutError,
+        MaxRetriesError,
+        UnexpectedResponseStatus,
     )
 
 
@@ -28,7 +30,7 @@ class QueryProvider(object):
                  stats=None,
                  query_interval=None):
         self.ns_list = ns_list
-        self.ns_cycle = itertools.cycle(ns_list)
+        self.next_ns_idx = 0
         self.timeout = timeout
         self.max_retries = max_retries
         self.query_interval = query_interval
@@ -37,6 +39,43 @@ class QueryProvider(object):
         self.stats = stats if stats is not None else {}
         self.stats['queries'] = 0
         self._qr_measurements = collections.deque(maxlen=QR_MEASUREMENTS)
+
+    def _ns_cycle(self, step=1):
+        self.next_ns_idx = (self.next_ns_idx + step) % len(self.ns_list)
+
+    def _next_ns(self):
+        ns = self.ns_list[self.next_ns_idx]
+        self._ns_cycle()
+        return ns
+
+    def _remove_ns(self, ns):
+        try:
+            ns_idx = self.ns_list.index(ns)
+        except ValueError:
+            # may have been already removed
+            return
+        removed_ns = self.ns_list.pop(ns_idx)
+
+        log.warn("removed misbehaving/unresponsive nameserver ", str(removed_ns))
+
+        if len(self.ns_list) == 0:
+            self._ns_cycle = 0
+            raise N3MapError("ran out of nameservers!")
+
+        # ensure the correct server is next in line:
+        if ns_idx < self.next_ns_idx:
+            self._ns_cycle(-1)
+        else:
+            self._ns_cycle(0)
+
+
+        if self.query_interval is not None:
+            # make sure we reduce the query rate such that each server receives
+            # the same q/s as before
+            single_server_interval = self.query_interval * (len(self.ns_list)+1)
+            self.query_interval = single_server_interval/len(self.ns_list)
+            log.warn("reducing query rate to avoid increasing the load ",
+                    "on remaining servers")
 
     def _query_timing(self, query_dn, rrtype, ns):
         self._wait_query_interval()
@@ -49,7 +88,7 @@ class QueryProvider(object):
         return query.query(query_dn, ns, rrtype, self.timeout)
 
     def query(self, query_dn, rrtype='A'):
-        ns = next(self.ns_cycle)
+        ns = self._next_ns()
         self._query_timing(query_dn, rrtype, ns)
         while True:
             # XXX
@@ -62,11 +101,18 @@ class QueryProvider(object):
                 ns.retries = 0
                 return res
             if isinstance(res, TimeOutError):
-                ns.add_timeouterror(self.max_retries)
-                ns = next(self.ns_cycle)
+                try:
+                    ns.add_timeouterror(self.max_retries)
+                except MaxRetriesError:
+                    self._remove_ns(ns)
+                ns = self._next_ns()
                 continue
-            if isinstance(res, QueryError):
-                log.fatal("received bad response from server: ", str(q.ns))
+            if isinstance(res, QueryError) or isinstance(res,
+                    UnexpectedResponseStatus):
+                log.error("{} from server {}".format(res, ns))
+                self._remove_ns(ns)
+                ns = self._next_ns()
+                continue
 
 
     def query_rate(self):
@@ -91,7 +137,7 @@ class QueryProvider(object):
                 time.sleep(self.query_interval - diff)
 
         self._last_query_time = time.monotonic()
-        
+
 
 class Query(object):
     def __init__(self, id, query_dn, ns, rrtype, timeout):
@@ -110,15 +156,15 @@ def create_aggressive_qp(queryprovider, num_threads):
                                    num_threads)
 
 class AggressiveQueryProvider(QueryProvider):
-    def __init__(self, 
-                 ns_list, 
+    def __init__(self,
+                 ns_list,
                  timeout,
                  max_retries,
                  stats=None,
                  query_interval=None,
                  num_threads=1):
         super(AggressiveQueryProvider,self).__init__(
-                 ns_list, 
+                 ns_list,
                  timeout,
                  max_retries,
                  stats,
@@ -153,7 +199,7 @@ class AggressiveQueryProvider(QueryProvider):
         self._active_queries[query.id] = query
         self._query_queue.put(query)
         return query.id
-    
+
     def _checkresult(self, qid, res):
         q = self._active_queries[qid]
         if not isinstance(res, N3MapError):
@@ -166,13 +212,26 @@ class AggressiveQueryProvider(QueryProvider):
         except TimeOutError:
             try:
                 q.ns.add_timeouterror(self.max_retries)
-                q.ns = next(self.ns_cycle)
-                self._sendquery(q)
-            except TimeOutError as e:
+            except MaxRetriesError:
+                try:
+                    self._remove_ns(q.ns)
+                except N3MapError as e:
+                    # happens when we run out of servers
+                    del self._active_queries[qid]
+                    raise e
+            q.ns = self._next_ns()
+            self._sendquery(q)
+        except (QueryError, UnexpectedResponseStatus) as e:
+            log.error("{} from server {}".format(e, q.ns))
+            try:
+                self._remove_ns(q.ns)
+            except N3MapError as e:
+                # happens when we run out of servers
                 del self._active_queries[qid]
                 raise e
-        except QueryError:
-            log.fatal("received bad response from server: ", str(q.ns))
+            q.ns = self._next_ns()
+            self._sendquery(q)
+
 
     def _collectresponses(self, block=True):
         if block:
@@ -192,7 +251,7 @@ class AggressiveQueryProvider(QueryProvider):
 
 
     def query_ff(self, query_dn, rrtype='A'):
-        ns = next(self.ns_cycle)
+        ns = self._next_ns()
         self._query_timing(query_dn, rrtype, ns)
         return self._sendquery(Query(self._gen_query_id(), query_dn, ns, rrtype, self.timeout))
 
@@ -238,9 +297,9 @@ class NameServer(object):
             self.retries += 1
             retries_left = max_retries - self.retries
             log.warn("timeout reached when waiting for response from ", str(self),
-                    ", ", str(retries_left), " retries left")
+                    ", ", str(max(0,retries_left)), " retries left")
             if retries_left <= 0:
-                raise TimeOutError('no response from server: ' + str(self))
+                raise MaxRetriesError('no response from server: ' + str(self))
         else:
             log.debug2("timeout reached when waiting for response from ", str(self))
 
@@ -255,10 +314,10 @@ class NameServer(object):
         return ''.join((ip,':',str(self.port),name))
 
 
-def _resolve(host):
+def _resolve(host, port):
     try:
         ip_list = []
-        for info in socket.getaddrinfo(host, None, socket.AF_INET,
+        for info in socket.getaddrinfo(host, port, socket.AF_INET,
                 socket.SOCK_DGRAM, socket.IPPROTO_IP):
             if info[0] == socket.AF_INET:
                 ip_list.append(info[4][0])
@@ -267,9 +326,9 @@ def _resolve(host):
         raise N3MapError("could not resolve host '" +
                 str(host) + "': " + str(e))
 
-
 def nameserver_from_text(*hosts):
     lst = []
+    ns_dict = {}
     for s in hosts:
         host = None
         port = None
@@ -283,7 +342,16 @@ def nameserver_from_text(*hosts):
                     raise InvalidPortError(str(v))
         if port is None:
             port = DEFAULT_PORT
-        lst +=  [NameServer(ip, port, host) for ip in _resolve(host)]
+        for ip in _resolve(host, port):
+            ns = NameServer(ip, port, host)
+            if (ip, port) in ns_dict:
+                original = ns_dict[(ip, port)]
+                if host != original[0]:
+                    log.warn("nameserver {} is a duplicate of {}, ignoring it"
+                            .format(ns, original[1]))
+                continue
+            ns_dict[(ip, port)] = (host, ns)
+            lst.append(ns)
     return lst
 
 
