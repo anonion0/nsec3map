@@ -5,9 +5,9 @@ import multiprocessing
 import signal
 import math
 
-import log
+from . import log
 
-from exception import N3MapError
+from .exception import N3MapError
 
 HAS_NUMPY = False
 try:
@@ -51,9 +51,9 @@ def sample(data, n):
 
 def create_zone_predictor():
     if not HAS_NUMPY:
-        raise N3MapError, "failed to start predictor: could not import numpy" 
+        raise N3MapError("failed to start predictor: could not import numpy") 
     if not HAS_SCIPY:
-        raise N3MapError, "failed to start predictor: could not import scipy" 
+        raise N3MapError("failed to start predictor: could not import scipy") 
     par,chld = multiprocessing.Pipe(True)
     proc = PredictorProcess(chld)
     proc.start()
@@ -82,7 +82,7 @@ class PredictorProcess(multiprocessing.Process):
             while True:
                 cov,rec = self.pipe.recv()
                 self._coverage_data.append((cov,rec))
-                for i in xrange(repredict_threshold):
+                for i in range(repredict_threshold):
                     if not self.pipe.poll():
                         break;
                     cov,rec = self.pipe.recv()
@@ -106,7 +106,7 @@ class PredictorProcess(multiprocessing.Process):
         subset = sample(self._coverage_data,sample_sz-1)
         subset.append(self._coverage_data[-1])
 
-        xdata,ydata = zip(*subset)
+        xdata,ydata = list(zip(*subset))
         lastcov = xdata[-1]
         if lastcov < 1e-8:
             lastcov = 1e-8

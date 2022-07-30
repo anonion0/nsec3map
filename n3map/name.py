@@ -1,8 +1,9 @@
 import string
 import struct
+import functools
 
-import vis
-from exception import (
+from . import vis
+from .exception import (
         InvalidDomainNameError,
         MaxDomainNameLengthError,
         MaxLabelLengthError,
@@ -14,16 +15,21 @@ MAX_LABEL = 63
 # for wire format:
 MAX_DOMAINNAME = 255
 
-ascii_upper_to_lower = string.maketrans(string.ascii_uppercase, 
-                                        string.ascii_lowercase)
-
-range_ld = map(ord, "0123456789abcdefghijklmnopqrstuvwxyz")
-range_ldh = map(ord, "-0123456789abcdefghijklmnopqrstuvwxyz")
+range_ld = b"0123456789abcdefghijklmnopqrstuvwxyz"
+range_ldh = b"-0123456789abcdefghijklmnopqrstuvwxyz"
 
 def hex_label(l):
-    return "{0:x}".format(l)
+    return b"%x" % l
 
-def label_generator(label_fun, init=0L):
+#def binary_label(l: int):
+#    return l.to_bytes((l.bit_length() + 7) // 8, 'big')
+
+## XXX: much slower than hex_label
+#def b32_label(l: int):
+#     return base64.b32encode(l.to_bytes((l.bit_length() + 7) // 8,
+#         'big')).rstrip(b'=')
+
+def label_generator(label_fun, init=0):
     l = init
     while True:
         lblstr = label_fun(l)
@@ -31,10 +37,10 @@ def label_generator(label_fun, init=0L):
         l += 1
 
 def _split_domainname_str(s):
-    if s == '.':
-        return ("",)
+    if s == b'.':
+        return (b"",)
     else:
-        return s.split('.')
+        return s.split(b'.')
 
 
 def unvis_domainname(s):
@@ -47,7 +53,11 @@ def fqdn_from_text(s):
     return domainname_from_text(s)
 
 def domainname_from_text(s):
-    return DomainName(*map(Label, _split_domainname_str(s)))
+    try:
+        bstr = s.encode('ascii')
+        return DomainName(*list(map(Label, _split_domainname_str(bstr))))
+    except UnicodeError:
+        raise InvalidDomainNameError('invalid encoding')
 
 def domainname_from_wire(ws):
     wire_bytes = []
@@ -57,22 +67,23 @@ def domainname_from_wire(ws):
         while True:
             n = wire_bytes.pop()
             lbl = []
-            for i in xrange(n):
+            for i in range(n):
                 try:
                     lbl.append(wire_bytes.pop())
                 except IndexError:
-                    raise InvalidDomainNameError, 'invalid wire format'
+                    raise InvalidDomainNameError('invalid wire format')
             labels.append(lbl)
     except IndexError:
         return DomainName(*[Label(struct.pack('B'*len(lbl), *lbl)) for lbl in
             labels])
 
 def _label_ldh():
-    return Label(chr(range_ld[0]))
+    return Label(range_ld[0:1])
 
 def _label_binary():
-    return Label("\x00")
+    return Label(b"\x00")
 
+@functools.total_ordering
 class Label(object):
     def __init__(self, labelstr):
         if len(labelstr) > MAX_LABEL:
@@ -87,7 +98,7 @@ class Label(object):
             return self.forward_next_binary(extend)
 
     def _extend_labelstr_binary(self, labelstr):
-        return labelstr + '\x00'
+        return labelstr + b'\x00'
 
     def forward_next_binary(self, extend):
         if extend:
@@ -121,7 +132,7 @@ class Label(object):
         return struct.pack('B'*len(s), *reversed(s))
 
     def _extend_labelstr_ldh(self, labelstr):
-        return labelstr + chr(range_ld[0])
+        return labelstr + range_ld[0:1]
 
     def forward_next_ldh(self, extend):
         if extend:
@@ -141,16 +152,16 @@ class Label(object):
         if ldh:
             for i, c in enumerate(self.label):
                 if i == 0 or i == len(self.label) - 1:
-                    if ord(c) != range_ld[-1]:
+                    if c != range_ld[-1]:
                         return False
                 else:
-                    if ord(c) != range_ldh[-1]:
+                    if c != range_ldh[-1]:
                         return False
             return True
 
         else:
             for c in self.label:
-                if ord(c) != 0xff:
+                if c != 0xff:
                     return False
             return True
 
@@ -191,29 +202,30 @@ class Label(object):
         return 1 + len(self.label)
 
     def _canonicalize(self):
-        # don't use locale-aware lowercase function, we only want 
+        # don't use locale-aware lowercase function, we only want
         # to convert the ASCII characters
-        self.label = self.label.translate(ascii_upper_to_lower)
+        # since label is a bytes object, this will only convert ASCII characters
+        self.label = self.label.lower()
 
     def to_wire(self):
         # see RFC1035, section 3.1 "Name space definitions" for more info
-        blist = []
-        blist.append(len(self.label))
-        blist[len(blist):] = struct.unpack('B'*len(self.label), self.label)
-        return struct.pack('B'*len(blist), *blist)
+        return bytes([len(self.label)]) + self.label
 
-    def __cmp__(self, other):
-        return cmp(self.label, other.label)
+    def __lt__(self, other):
+        return self.label < other.label
+
+    def __eq__(self, other):
+        return self.label == other.label
 
     def __str__(self):
-        return vis.strvis(self.label)
+        return vis.strvis(self.label).decode("ascii")
 
 
-
+@functools.total_ordering
 class DomainName(object):
     def __init__(self, *labels):
         if len(labels) == 0:
-            raise InvalidDomainNameError, 'no label specified'
+            raise InvalidDomainNameError('no label specified')
         self.labels = list(labels)
         if self.wire_length() > MAX_DOMAINNAME:
             raise MaxDomainNameLengthError
@@ -245,7 +257,7 @@ class DomainName(object):
             else:
                 newlabels.append(label)
         if not increased:
-            raise MaxDomainNameLengthError, ('cannot increase domain name')
+            raise MaxDomainNameLengthError(('cannot increase domain name'))
         return DomainName(*newlabels)
 
     def covered_by(self, owner, next_owner):
@@ -275,33 +287,45 @@ class DomainName(object):
             i += 1
         return (DomainName(*first_labels), DomainName(*second_labels))
 
-
-    def __cmp__(self, other):
+    def __lt__(self, other):
         s = self.labels[:]
         o = other.labels[:]
         s.reverse()
         o.reverse()
-        for i in xrange(0, max((len(s), len(o)))):
+        for i in range(0, max((len(s), len(o)))):
             if i >= len(s):
-                return -1
+                return True
             if i >= len(o):
-                return 1
+                return False
             if s[i] < o[i]:
-                return -1
+                return True
             elif s[i] > o[i]:
-                return 1
-        return 0
+                return False
+        return False
+
+    def __eq__(self, other):
+        s = self.labels[:]
+        o = other.labels[:]
+        s.reverse()
+        o.reverse()
+        for i in range(0, max((len(s), len(o)))):
+            if i >= len(s):
+                return False
+            if i >= len(o):
+                return False
+            if s[i] != o[i]:
+                return False
+        return True
 
     def is_root(self):
-        return (len(self.labels) == 1 and self.labels[0].label == "")
+        return (len(self.labels) == 1 and self.labels[0].label == b"")
 
     def to_wire(self):
         # see RFC1035, section 3.1 "Name space definitions" for more info
-        labellist = []
+        wirelabels = bytearray()
         for label in self.labels:
-            labellist.append(label.to_wire())
-
-        return ''.join(labellist)
+            wirelabels += label.to_wire()
+        return bytes(wirelabels)
 
     def __str__(self):
         if self.is_root():

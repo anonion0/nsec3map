@@ -1,7 +1,7 @@
 import re
 import hashlib
 
-import rr
+from . import rr
 from .. import name
 from .. import vis
 from .. import util
@@ -15,8 +15,8 @@ SHA1 = 1
 SHA1_LENGTH = 20
 
 def distance_covered(hashed_owner, next_hashed_owner):
-    return abs(util.str_to_long(next_hashed_owner) -
-                util.str_to_long(hashed_owner))
+    return abs(int.from_bytes(next_hashed_owner, "big") -
+                int.from_bytes(hashed_owner, "big"))
 
 def covered_by_nsec3_interval(nsec3_hash, hashed_owner, next_hashed_owner):
     if hashed_owner >= next_hashed_owner:
@@ -47,11 +47,11 @@ class NSEC3(rr.RR):
             hash_dn, zone = hashed_owner.split(1)
             hashed_owner = util.base32_ext_hex_decode(hash_dn.labels[0].label)
             if len(hashed_owner) != SHA1_LENGTH:
-                raise NSEC3Error, 'NSEC3 RR: invalid hashed_owner length'
+                raise NSEC3Error('NSEC3 RR: invalid hashed_owner length')
             self.hashed_owner = hashed_owner
             self.zone = zone
         except (InvalidDomainNameError, TypeError, IndexError):
-            raise NSEC3Error, "NSEC3 RR: could not decode hashed owner name"
+            raise NSEC3Error("NSEC3 RR: could not decode hashed owner name")
 
     @property
     def algorithm(self):
@@ -60,7 +60,7 @@ class NSEC3(rr.RR):
     @algorithm.setter
     def algorithm(self, algorithm):
         if not (algorithm & SHA1):
-            raise NSEC3Error, 'NSEC3 RR: unknown hash function'
+            raise NSEC3Error('NSEC3 RR: unknown hash function')
         self._algorithm = algorithm
 
     @property
@@ -70,7 +70,7 @@ class NSEC3(rr.RR):
     @next_hashed_owner.setter
     def next_hashed_owner(self, v):
         if len(v) != SHA1_LENGTH:
-            raise NSEC3Error, 'NSEC3 RR: invalid next_hashed_owner length'
+            raise NSEC3Error('NSEC3 RR: invalid next_hashed_owner length')
         self._next_hashed_owner = v
 
     @property
@@ -80,12 +80,12 @@ class NSEC3(rr.RR):
     @iterations.setter
     def iterations(self, v):
         if v < 0 or v > 2500:
-            raise NSEC3Error, "NSEC3 RR: invalid number of iterations"
+            raise NSEC3Error("NSEC3 RR: invalid number of iterations")
         self._iterations = v
 
     def sanity_check(self):
         if self.hashed_owner == self.next_hashed_owner:
-            raise NSEC3Error, 'NSEC3 RR: invalid owner/next owner'
+            raise NSEC3Error('NSEC3 RR: invalid owner/next owner')
 
     def part_of_zone(self, zone):
         return (zone == self.zone)
@@ -113,7 +113,8 @@ class NSEC3(rr.RR):
                       str(self.flags),
                       str(self.iterations),
                       (util.str_to_hex(self.salt) if len(self.salt) > 0 else '-'),
-                      util.base32_ext_hex_encode(self.next_hashed_owner).lower())),
+                      util.base32_ext_hex_encode(self.next_hashed_owner).lower()
+                      .decode())),
             ' '.join(self.types)))
 
     def distance_covered(self):
@@ -124,7 +125,7 @@ class NSEC3(rr.RR):
 def compute_hash(owner_name, salt, iterations, algorithm=SHA1):
     # see RFC5155 for details
     if not (algorithm & SHA1):
-        raise NSEC3Error, 'unknown hash function'
+        raise NSEC3Error('unknown hash function')
     x = owner_name.to_wire()
     i = 0
     while True:
@@ -145,7 +146,7 @@ def parser():
             res = rr_parse(s)
             if res is None:
                 return None
-            owner, ttl, cls, rest = res 
+            owner, ttl, cls, rest = res
             m = p_nsec3.match(rest)
             if m is None:
                 return None
@@ -158,10 +159,12 @@ def parser():
             else:
                 salt = util.hex_to_str(m.group(4))
             next_hashed_owner = util.base32_ext_hex_decode(m.group(5))
-            types = map(vis.strvis, m.group(6).strip().split(' '))
+            types = m.group(6).strip()
+            if not types.isprintable():
+                raise ValueError
+            types = types.split(' ')
         except (TypeError, ValueError):
             raise ParseError
-            
         return NSEC3(owner, ttl, cls, algorithm, flags, iterations, salt, next_hashed_owner, types)
     return nsec3_from_text
 

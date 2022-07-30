@@ -2,10 +2,11 @@ import re
 import gzip
 import bz2
 
-import log
-import rrtypes.nsec
-import rrtypes.nsec3
-from exception import (
+from . import log
+from .rrtypes import nsec
+from .rrtypes import nsec3
+from . import rrtypes
+from .exception import (
         FileParseError,
         MaxDomainNameLengthError,
         MaxLabelLengthError,
@@ -18,18 +19,18 @@ _comment_pattern = r'^\s*([;#].*)?$'
 
 def _open(filename, mode):
     if filename.endswith(".gz"):
-        return gzip.open(filename, mode)
+        return gzip.open(filename, mode, encoding="utf-8")
     elif filename.endswith(".bz2"):
-        return bz2.BZ2File(filename, mode)
-    return open(filename, mode)
+        return bz2.BZ2File(filename, mode, encoding="utf-8")
+    return open(filename, mode, encoding="utf-8")
 
 
 
 def open_output_rrfile(filename):
-    return RRFile(_open(filename, "wb+"))
+    return RRFile(_open(filename, "w+"))
 
 def open_input_rrfile(filename):
-    return RRFile(_open(filename, "rb"))
+    return RRFile(_open(filename, "r"))
 
 class RRFile(object):
     def __init__(self, f):
@@ -53,7 +54,7 @@ class RRFile(object):
 
     def write_stats(self, stats):
         self.f.write("\n;; statistics\n")
-        for k, v in stats.iteritems():
+        for k, v in stats.items():
             self.f.write("; " + str(k) + " = " + str(v) + '\n')
 
     def write_record(self, rr):
@@ -74,16 +75,16 @@ class RRFile(object):
             try:
                 nsec = nsec_parse(line)
                 if nsec is None:
-                    raise FileParseError, (self._filename(), i, 
+                    raise FileParseError(self._filename(), i, 
                             "invalid file format")
                 yield nsec
             except ParseError:
-                raise FileParseError, (self._filename(), i, 
+                raise FileParseError(self._filename(), i, 
                         "could not parse NSEC record")
             except (NSECError,
                     MaxDomainNameLengthError,
-                    MaxLabelLengthError), e:
-                raise FileParseError,  (self._filename(), i, 
+                    MaxLabelLengthError) as e:
+                raise FileParseError(self._filename(), i, 
                         "invalid NSEC record:\n" + str(e))
 
     def write_label_counter(self, label_counter):
@@ -99,9 +100,9 @@ class RRFile(object):
             m_counter = p_counter.match(line)
             if m_counter is not None:
                 try:
-                    self.label_counter = long(m_counter.group(1), 16)
+                    self.label_counter = int(m_counter.group(1), 16)
                 except ValueError:
-                    raise FileParseError, (self._filename(), i, 
+                    raise FileParseError(self._filename(), i, 
                             "cannot parse label counter value")
                 continue
             elif p_ignore.match(line):
@@ -109,16 +110,16 @@ class RRFile(object):
             try:
                 nsec3 = nsec3_parse(line)
                 if nsec3 is None:
-                    raise FileParseError, (self._filename(), i, 
+                    raise FileParseError(self._filename(), i, 
                             "invalid file format")
                 yield nsec3
             except ParseError:
-                raise FileParseError, (self._filename(), i, 
+                raise FileParseError(self._filename(), i, 
                         "could not parse NSEC3 record")
             except (NSEC3Error,
                     MaxDomainNameLengthError,
-                    MaxLabelLengthError), e:
-                raise FileParseError,  (self._filename(), i, 
+                    MaxLabelLengthError) as e:
+                raise FileParseError(self._filename(), i, 
                         "invalid NSEC3 record:\n" + str(e))
 
 def nsec_from_file(filename):

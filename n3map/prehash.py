@@ -3,25 +3,25 @@ import multiprocessing
 import os
 import sys
 
-import log
-import rrtypes
-import name
-from name import DomainName,Label
+from . import log
+from . import rrtypes
+from . import name
+from .name import DomainName,Label
 
 
 HAS_NSEC3HASH = False
 try:
-    import n3map.nsec3hash
+    from . import nsec3hash
     HAS_NSEC3HASH = True
 except ImportError:
     pass
 
-def _process_label_generator(label_fun, gap, process_id, num_processes, init=0L):
-    start = l = long(process_id*gap+init)
+def _process_label_generator(label_fun, gap, process_id, num_processes, init=0):
+    start = l = int(process_id*gap+init)
     end = start + gap
     while True:
         if l >= end:
-            start += long(num_processes*gap)
+            start += int(num_processes*gap)
             end = start + gap
             l = start
         lblstr = label_fun(l)
@@ -32,7 +32,7 @@ def create_prehash_pool(num_processes, element_size,
         use_cext):
     processes = []
     hash_queues = []
-    for i in xrange(num_processes):
+    for i in range(num_processes):
         par,chld = multiprocessing.Pipe(True)
         p = PreHashProcess(chld, element_size, i, name.hex_label,
                 num_processes, use_cext)
@@ -58,7 +58,7 @@ class PreHashProcess(multiprocessing.Process):
         self.num_processes = num_processes
 
         if self.use_cext and not HAS_NSEC3HASH:
-            log.error("failed to import n3map.nsec3hash module\n",
+            log.error("failed to import nsec3hash module\n",
                     "falling back to python-based hashing")
             self.use_cext = False
 
@@ -92,17 +92,17 @@ class PreHashProcess(multiprocessing.Process):
                 self.iterations)
 
     def _hash_cext(self, dn):
-        return n3map.nsec3hash.compute_hash(dn.to_wire(), self.salt,
+        return nsec3hash.compute_hash(dn.to_wire(), self.salt,
                 self.iterations)
 
     def _precompute_hashes(self, hash_func):
-        counter_state = 0L
+        counter_state = 0
         element_size = self.element_size
         generator = self.generator
         while True:
             element = []
-            for i in xrange(element_size):
-                ptlabel, counter_state = generator.next()
+            for i in range(element_size):
+                ptlabel, counter_state = next(generator)
                 dn = DomainName(Label(ptlabel), *self.zone.labels)
                 hashed_owner =  hash_func(dn)
                 element.append((ptlabel,hashed_owner))

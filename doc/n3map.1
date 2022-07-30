@@ -41,6 +41,12 @@ Change the NSEC query mode/strategy. MODE may be one of the following:
 \fIA\fR:
 In this mode, only A queries are used. This mode is quite reliable, however, it
 may require a lot of additional queries in some situations.
+
+Since the direct querying of NSEC records is not needed for normal operations,
+some nameservers do not allow it all. In those cases, this mode can be used to
+circumvent that restriction. For the same reason enumeration attempts using
+this only A queries may also appear slightly less obvious (especially when used
+together with --ldh).
 .IP 
 \fINSEC\fR:
 This mode only uses NSEC queries. It uses only a minimum amount of queries. The
@@ -187,6 +193,10 @@ Display version information on standard output and exit successfully.
 .TP 
 \fB\-v\fR, \fB\-\-verbose\fR
 increase verbosity level (use multiple times for greater effect) 
+.TP 
+\fB\-\-color\fR=\fIWHEN\fR
+colorize output; WHEN can be 'auto' (default), 'always' or 'never'.
+
 .SH EXIT STATUS
 .TP
 0

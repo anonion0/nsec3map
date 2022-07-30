@@ -9,11 +9,12 @@ import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
 
-import name
-import rrtypes.nsec3
-import rrtypes.nsec
-import exception
-import log
+from . import name
+from .rrtypes import nsec3
+from .rrtypes import nsec
+from . import rrtypes
+from . import exception
+from . import log
 
 def _rrtypes_from_window_list(window_list):
     # see RFC 3845, section 2.1.2 "The List of Type Bit Map(s) Field"
@@ -114,8 +115,8 @@ def dnspython_query(dname, ns_ip, ns_port, rrtype, timeout):
 
     q = dns.message.make_query(qname, 
                                rrtype, 
-                               want_dnssec=True)
-    q.payload = 4096
+                               want_dnssec=True,
+                               payload = 4096)
     r = dns.query.udp(q, ns_ip, port=ns_port, timeout=timeout,
             ignore_unexpected=True)
 
@@ -136,10 +137,10 @@ def query_ns_records(zone):
         zname = dns.name.from_wire(zone.to_wire(),0)[0]
         ans = dns.resolver.query(zname, 'NS')
         return set([rd.to_text() for rd in ans])
-    except dns.resolver.NXDOMAIN, e:
-        raise exception.N3MapError, 'failed to resolve nameservers for zone: NXDOMAIN'
-    except dns.exception.DNSException, e:
-        raise exception.N3MapError, 'failed to resolve nameservers for zone'
+    except dns.resolver.NXDOMAIN as e:
+        raise exception.N3MapError('failed to resolve nameservers for zone: NXDOMAIN')
+    except dns.exception.DNSException as e:
+        raise exception.N3MapError('failed to resolve nameservers for zone')
 
 
 

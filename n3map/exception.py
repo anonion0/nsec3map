@@ -1,6 +1,5 @@
-import exceptions
 
-class N3MapError(exceptions.Exception):
+class N3MapError(Exception):
     def __str__(self):
         return ''.join(map(str, self.args))
 

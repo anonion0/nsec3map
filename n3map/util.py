@@ -3,10 +3,11 @@ import struct
 import base64
 
 # see RFC4648 for details
-b32_to_b32_ext_hex = string.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
-                                      "0123456789ABCDEFGHIJKLMNOPQRSTUV")
-b32_ext_hex_to_b32 = string.maketrans("0123456789ABCDEFGHIJKLMNOPQRSTUV",
-                                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
+# TODO: python3.10 has support for this included: base64.b32hexencode()
+b32_to_b32_ext_hex = bytes.maketrans(b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
+                                     b"0123456789ABCDEFGHIJKLMNOPQRSTUV")
+b32_ext_hex_to_b32 = bytes.maketrans(b"0123456789ABCDEFGHIJKLMNOPQRSTUV",
+                                     b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
 def base32_ext_hex_encode(s):
     return base64.b32encode(s).translate(b32_to_b32_ext_hex)
 
@@ -32,25 +33,3 @@ def hex_to_str(s):
         raise ValueError
 
     return struct.pack('B'*len(bytes_list), *bytes_list)
-    
-def str_to_long(s):
-    length = len(s)
-    num_ints,num_bytes = divmod(length, 4)
-    intlist = struct.unpack('>' + 'I'*num_ints, s[:num_ints*4])
-    l = 0 
-    for i in intlist:
-        l = (l << 32) + i
-    if num_bytes > 0:
-        bytelist = struct.unpack('B'*num_bytes, s[-num_bytes:])
-        for b in bytelist:
-            l = (l << 8) + b
-    return l
-
-def long_to_str(l):
-    label = []
-    while l > 0:
-        byte = l & 0xff
-        label.insert(0,struct.pack('B', byte))
-        l >>= 8
-    return ''.join(label)
-

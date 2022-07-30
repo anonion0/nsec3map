@@ -24,7 +24,7 @@ def parser():
                 return None
             else:
                 # owner, tt, class, rest
-                owner = name.unvis_domainname(m.group(1))
+                owner = name.unvis_domainname(m.group(1).encode("ascii"))
                 return owner, int(m.group(3)), 'IN', m.group(4)
         except ValueError:
             raise ParseError

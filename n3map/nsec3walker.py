@@ -1,17 +1,17 @@
 import itertools
 
-import log
-import name
-import prehash
-import util
-import walker
+from . import log
+from . import name
+from . import prehash
+from . import util
+from . import walker
 
-from queryprovider import create_aggressive_qp
+from .queryprovider import create_aggressive_qp
 
-from statusline import format_statusline_nsec3
+from .statusline import format_statusline_nsec3
 
-from exception import N3MapError, NSEC3WalkError
-from nsec3chain import NSEC3Chain
+from .exception import N3MapError, NSEC3WalkError
+from .nsec3chain import NSEC3Chain
 
 
 class NSEC3Walker(walker.Walker):
@@ -41,9 +41,9 @@ class NSEC3Walker(walker.Walker):
                         label_counter))
             self._label_counter_init = label_counter
         else:
-            self._label_counter_init = 0L
+            self._label_counter_init = 0
 
-        self._label_counter_state = 0L
+        self._label_counter_state = 0
         self._hash_queues = itertools.cycle(hash_queues)
         self._reset_prehashing()
         self._aggressive = aggressive
@@ -55,10 +55,10 @@ class NSEC3Walker(walker.Walker):
                 log.info("hit an existing owner name: ", str(query_dn))
                 return
             elif res.status() == 'NXDOMAIN':
-                raise NSEC3WalkError, ('no NSEC3 RR received\n',  
+                raise NSEC3WalkError('no NSEC3 RR received\n',  
                         "Maybe the zone doesn't support DNSSEC or uses NSEC RRs")
             else:
-                raise NSEC3WalkError, ('unexpected response status: ', res.status())
+                raise NSEC3WalkError('unexpected response status: ', res.status())
         self._insert_records(recv_nsec3)
 
     def _insert_records(self, recv_rr):
@@ -66,16 +66,15 @@ class NSEC3Walker(walker.Walker):
         for rr in recv_rr:
             log.debug2('received NSEC3 RR: ', str(rr))
             if not rr.part_of_zone(self.zone):
-                raise NSEC3WalkError, 'NSEC3 RR not part of zone'
+                raise NSEC3WalkError('NSEC3 RR not part of zone')
 
             # check if the record is minimally-covering
             #  ref 'NSEC3 White Lies':
             #  https://tools.ietf.org/html/rfc7129#appendix-B
             if rr.distance_covered() == 2:
-                raise NSEC3WalkError, ('Received minimally-covering NSEC3 record\n',
+                raise NSEC3WalkError('Received minimally-covering NSEC3 record\n',
                              'This zone likely uses "NSEC3 White Lies" to prevent zone enumeration\n',
-                             '(See https://tools.ietf.org/html/rfc7129#appendix-B)'
-                            )
+                             '(See https://tools.ietf.org/html/rfc7129#appendix-B)')
             was_new = self.nsec3_chain.insert(rr)
             if was_new:
                 log.debug1("discovered: ", str(rr.owner), " ", 
@@ -109,7 +108,7 @@ class NSEC3Walker(walker.Walker):
     def _map_zone(self):
         generator = name.label_generator(name.hex_label, self._label_counter_init)
         while self.nsec3_chain.size() == 0:
-            query_dn = name.DomainName(generator.next()[0], *self.zone.labels)
+            query_dn = name.DomainName(next(generator)[0], *self.zone.labels)
             res = self.queryprovider.query(query_dn, rrtype='A')
             self._process_query_result(query_dn, res)
         self._start_prehashing()
@@ -128,7 +127,7 @@ class NSEC3Walker(walker.Walker):
         self._set_status_generator()
         try:
             self._map_zone()
-        except (KeyboardInterrupt, N3MapError), e:
+        except (KeyboardInterrupt, N3MapError) as e:
             if self._output_file is not None:
                 self._output_file.write_label_counter(self._label_counter_state)
             self._stop_prehashing()
@@ -153,7 +152,7 @@ class NSEC3Walker(walker.Walker):
                     return dn,dn_hash
 
             self.stats['tested_hashes'] += len(self._prehash_list)
-            hashes, label_counter_state = self._hash_queues.next().recv()
+            hashes, label_counter_state = next(self._hash_queues).recv()
             if self._label_counter_state < label_counter_state:
                 self._label_counter_state = label_counter_state
             self._prehash_list = hashes
