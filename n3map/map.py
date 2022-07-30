@@ -79,9 +79,8 @@ def n3map_main(argv):
     log.info("n3map {}: starting mapping of {}".format(
         n3map.__version__, str(zone)))
 
-    nslist = get_nameservers(zone, ns_names)
-
     try:
+        nslist = get_nameservers(zone, ns_names)
         stats = {}
         options['timeout'] /= 1000.0
         qprovider = queryprovider.QueryProvider(nslist,

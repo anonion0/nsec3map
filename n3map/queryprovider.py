@@ -264,8 +264,8 @@ def _resolve(host):
                 ip_list.append(info[4][0])
         return ip_list
     except socket.gaierror as e:
-        raise N3MapError("could not resolve host '" + 
-                str(host) + "': " + e[1])
+        raise N3MapError("could not resolve host '" +
+                str(host) + "': " + str(e))
 
 
 def nameserver_from_text(*hosts):
