@@ -159,6 +159,15 @@ hashing however, you still need to build the extension module:
 This should compile a shared object nsec3hash.so in the build/ directory. You
 can then copy this file to the n3map/ directory.
   
+### John the Ripper Plugin
+
+**Update**: The latest version of
+[JtR-Jumbo](https://github.com/magnumripper/JohnTheRipper) includes the NSEC3
+cracking patch from this project. There is no need to install it separately,
+just follow the build instructions for JtR-Jumbo. Using the latest source
+version is recommended.
+
+Alternatively, you can also use [hashcat](https://hashcat.net/hashcat/ "hashcat").
 
 Docker
 --------
@@ -172,15 +181,6 @@ Running n3map or e.g. n3map-hashcatify:
 	docker run -it --rm -v "${PWD}:/host" nsec3map -v -o example.com.zone example.com
 	docker run -it --entrypoint n3map-hashcatify --rm -v "${PWD}:/host" nsec3map example.com.zone example.com.hashcat
 
-### John the Ripper Plugin
-
-**Update**: The latest version of
-[JtR-Jumbo](https://github.com/magnumripper/JohnTheRipper) includes the NSEC3
-cracking patch from this project. There is no need to install it separately,
-just follow the build instructions for JtR-Jumbo. Using the latest source
-version is recommended.
-
-Alternatively, you can also use [hashcat](https://hashcat.net/hashcat/ "hashcat").
 
 Limitations
 -----------
