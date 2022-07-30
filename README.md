@@ -140,7 +140,7 @@ Dependencies:
 On a Debian system, just run
 
 	sudo apt-get install python3 python3-dev python3-dnspython \
-		 libssl1.1 libssl-dev python3-numpy python3-scipy
+		 libssl3 libssl-dev python3-numpy python3-scipy
 
 Installation:
 
