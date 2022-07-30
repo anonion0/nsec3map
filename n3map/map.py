@@ -485,7 +485,7 @@ NSEC Options:
 NSEC3 Options:
   -f, --aggressive=N         send up to N queries in parallel. This may speed
                                up the enumeration significantly if the DNS
-                               servers round-trip time is high. However, it will
+                               server's round-trip time is high. However, it will
                                also cause n3map to make more queries than usual
                                because it cannot completely avoid queries which
                                resolve to the same NSEC3 records.
