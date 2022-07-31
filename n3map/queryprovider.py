@@ -14,6 +14,7 @@ from .exception import (
         QueryError,
         TimeOutError,
         MaxRetriesError,
+        MaxNsErrors,
         UnexpectedResponseStatus,
     )
 
@@ -27,12 +28,14 @@ class QueryProvider(object):
                  ns_list,
                  timeout,
                  max_retries,
+                 max_errors = 1,
                  stats=None,
                  query_interval=None):
         self.ns_list = ns_list
         self.next_ns_idx = 0
         self.timeout = timeout
         self.max_retries = max_retries
+        self.max_errors = max_errors
         self.query_interval = query_interval
         self._last_query_time = None
 
@@ -60,7 +63,7 @@ class QueryProvider(object):
 
         if len(self.ns_list) == 0:
             self._ns_cycle = 0
-            raise N3MapError("ran out of nameservers!")
+            raise N3MapError("ran out of working nameservers!")
 
         # ensure the correct server is next in line:
         if ns_idx < self.next_ns_idx:
@@ -77,40 +80,54 @@ class QueryProvider(object):
             log.warn("reducing query rate to avoid increasing the load ",
                     "on remaining servers")
 
+    def add_ns_error(self, ns):
+        try:
+            ns.add_error(self.max_errors)
+        except MaxNsErrors:
+            self._remove_ns(ns)
+
+    def add_ns_timeout(self, ns):
+        try:
+            ns.add_timeouterror(self.max_retries)
+        except MaxRetriesError:
+            self._remove_ns(ns)
+
     def _query_timing(self, query_dn, rrtype, ns):
         self._wait_query_interval()
         self._qr_measurements.append(time.monotonic())
         return ns
 
     def _sendquery(self, query_dn, ns, rrtype):
-        self.stats['queries'] += 1
-        log.debug2('query: ', query_dn, '; ns = ', ns, '; rrtype = ', rrtype)
-        return query.query(query_dn, ns, rrtype, self.timeout)
+        # XXX
+        # need to block signals because dnspython doesn't handle EINTR
+        # correctly
+        log.logger.block_signals()
+        try:
+            self.stats['queries'] += 1
+            log.debug2('query: ', query_dn, '; ns = ', ns, '; rrtype = ', rrtype)
+            return query.query(query_dn, ns, rrtype, self.timeout)
+        finally:
+            log.logger.unblock_signals()
+
 
     def query(self, query_dn, rrtype='A'):
         ns = self._next_ns()
         self._query_timing(query_dn, rrtype, ns)
         while True:
-            # XXX
-            # need to block signals because dnspython doesn't handle EINTR
-            # correctly
-            log.logger.block_signals()
             res = self._sendquery(query_dn, ns, rrtype)
-            log.logger.unblock_signals()
             if not isinstance(res, N3MapError):
                 ns.retries = 0
-                return res
+                # don't know yet if we can reset the error counter, caller
+                # decides
+                return (res, ns)
             if isinstance(res, TimeOutError):
-                try:
-                    ns.add_timeouterror(self.max_retries)
-                except MaxRetriesError:
-                    self._remove_ns(ns)
+                self.add_ns_timeout(ns)
                 ns = self._next_ns()
                 continue
             if isinstance(res, QueryError) or isinstance(res,
                     UnexpectedResponseStatus):
                 log.error("{} from server {}".format(res, ns))
-                self._remove_ns(ns)
+                self.add_ns_error(ns)
                 ns = self._next_ns()
                 continue
 
@@ -151,6 +168,7 @@ def create_aggressive_qp(queryprovider, num_threads):
     return AggressiveQueryProvider(queryprovider.ns_list,
                                    queryprovider.timeout,
                                    queryprovider.max_retries,
+                                   queryprovider.max_errors,
                                    queryprovider.stats,
                                    queryprovider.query_interval,
                                    num_threads)
@@ -160,6 +178,7 @@ class AggressiveQueryProvider(QueryProvider):
                  ns_list,
                  timeout,
                  max_retries,
+                 max_errors,
                  stats=None,
                  query_interval=None,
                  num_threads=1):
@@ -167,6 +186,7 @@ class AggressiveQueryProvider(QueryProvider):
                  ns_list,
                  timeout,
                  max_retries,
+                 max_errors,
                  stats,
                  query_interval)
         self._current_queryid = 0
@@ -204,27 +224,24 @@ class AggressiveQueryProvider(QueryProvider):
         q = self._active_queries[qid]
         if not isinstance(res, N3MapError):
             q.ns.retries = 0
-            self._results[qid] = res
+            self._results[qid] = (res, q.ns)
             del self._active_queries[qid]
             return
         try:
             raise res
         except TimeOutError:
             try:
-                q.ns.add_timeouterror(self.max_retries)
-            except MaxRetriesError:
-                try:
-                    self._remove_ns(q.ns)
-                except N3MapError as e:
-                    # happens when we run out of servers
-                    del self._active_queries[qid]
-                    raise e
+                self.add_ns_timeout(q.ns)
+            except N3MapError as e:
+                # happens when we run out of servers
+                del self._active_queries[qid]
+                raise e
             q.ns = self._next_ns()
             self._sendquery(q)
         except (QueryError, UnexpectedResponseStatus) as e:
             log.error("{} from server {}".format(e, q.ns))
             try:
-                self._remove_ns(q.ns)
+                self.add_ns_error(q.ns)
             except N3MapError as e:
                 # happens when we run out of servers
                 del self._active_queries[qid]
@@ -291,6 +308,7 @@ class NameServer(object):
         self.port = port
         self.name = vis.strvis(name.encode()).decode()
         self.retries = 0
+        self.errors = 0
 
     def add_timeouterror(self, max_retries):
         if max_retries != -1:
@@ -302,6 +320,19 @@ class NameServer(object):
                 raise MaxRetriesError('no response from server: ' + str(self))
         else:
             log.debug2("timeout reached when waiting for response from ", str(self))
+
+    def add_error(self, max_errors):
+        self.errors += 1
+        if max_errors != -1:
+            errors_left = max_errors - self.errors
+            log.warn(str(max(0,errors_left)), " errors left for ", str(self))
+            if errors_left <= 0:
+                raise MaxNsErrors()
+        else:
+            log.debug2(str(self), " had ", str(self.errors), " error(s)")
+
+    def reset_errors(self):
+        self.errors = 0
 
 
     def __str__(self):

@@ -10,7 +10,7 @@ def detect_dnssec_type(zone, queryprovider, attempts=5):
     while attempts == 0 or i < attempts:
         label_gen = name.label_generator(name.hex_label,init=randint(0,0xFFFFFFFFFFFFFFFF))
         dname = name.DomainName(next(label_gen)[0], *zone.labels)
-        result = queryprovider.query(dname, rrtype='A')
+        result, _ = queryprovider.query(dname, rrtype='A')
 
         # check for NSEC/3 records even if we got a NOERROR response
         # to try and avoid loops when the zone contains a wildcard domain
@@ -33,7 +33,7 @@ def detect_dnssec_type(zone, queryprovider, attempts=5):
 
 def check_dnskey(zone, queryprovider):
     log.info('checking DNSKEY...')
-    res = queryprovider.query(zone, rrtype='DNSKEY')
+    res, _ = queryprovider.query(zone, rrtype='DNSKEY')
     dnskey_owner = res.find_DNSKEY()
     if dnskey_owner is None:
         raise N3MapError("no DNSKEY RR found at ", zone,
@@ -43,7 +43,7 @@ def check_dnskey(zone, queryprovider):
 
 def check_soa(zone, queryprovider):
     log.info('checking SOA...')
-    res = queryprovider.query(zone, rrtype='SOA')
+    res, _ = queryprovider.query(zone, rrtype='SOA')
     soa_owner = res.find_SOA()
     if soa_owner is None:
         raise N3MapError("no SOA RR found at ", zone,

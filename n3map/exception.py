@@ -34,9 +34,13 @@ class UnexpectedResponseStatus(N3MapError):
     def __str__(self):
         return 'received unexpected response status ' + str(self.status)
 
+
 class MaxRetriesError(N3MapError):
     def __str__(self):
         return 'timeout: ' + ''.join(map(str, self.args))
+
+class MaxNsErrors(N3MapError):
+    pass
 
 class QueryError(N3MapError):
     def __str__(self):

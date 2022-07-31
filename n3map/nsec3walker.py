@@ -48,17 +48,24 @@ class NSEC3Walker(walker.Walker):
         self._reset_prehashing()
         self._aggressive = aggressive
 
-    def _process_query_result(self, query_dn, res):
+    def _process_query_result(self, query_dn, res, ns):
         recv_nsec3 = res.find_NSEC3()
         if len(recv_nsec3) == 0:
             if res.status() == "NOERROR":
                 log.info("hit an existing owner name: ", str(query_dn))
+                ns.reset_errors()
                 return
             elif res.status() == 'NXDOMAIN':
-                raise NSEC3WalkError('no NSEC3 RR received\n',
+                log.error('no NSEC3 RR received\n',
                         "Maybe the zone doesn't support DNSSEC or uses NSEC RRs")
+                self.queryprovider.add_ns_error(ns)
+                return
             else:
-                raise NSEC3WalkError('unexpected response status: ', res.status())
+                log.error('unexpected response status: ', res.status(),
+                        ' from ', str(ns))
+                self.queryprovider.add_ns_error(ns)
+                return
+        ns.reset_errors()
         self._insert_records(recv_nsec3)
 
     def _insert_records(self, recv_rr):
@@ -91,8 +98,8 @@ class NSEC3Walker(walker.Walker):
             num_queries = len(queries)
             query_dn,dn_hash = self._find_uncovered_dn(generator, num_queries > 0)
             results = self.queryprovider.collectresponses(block=(num_queries >= max_queries))
-            for qid, res in results:
-                self._process_query_result(queries.pop(qid),res)
+            for qid, (res, ns) in results:
+                self._process_query_result(queries.pop(qid),res, ns)
             if query_dn is None or self.nsec3_chain.covers(dn_hash):
                 continue
             queries[self.queryprovider.query_ff(query_dn, rrtype='A')] = query_dn
@@ -102,15 +109,15 @@ class NSEC3Walker(walker.Walker):
     def _map_normal(self, generator):
         while not self.nsec3_chain.covers_zone():
             query_dn,dn_hash = self._find_uncovered_dn(generator)
-            result = self.queryprovider.query(query_dn, rrtype='A')
-            self._process_query_result(query_dn, result)
+            result, ns = self.queryprovider.query(query_dn, rrtype='A')
+            self._process_query_result(query_dn, result, ns)
 
     def _map_zone(self):
         generator = name.label_generator(name.hex_label, self._label_counter_init)
         while self.nsec3_chain.size() == 0:
             query_dn = name.DomainName(next(generator)[0], *self.zone.labels)
-            res = self.queryprovider.query(query_dn, rrtype='A')
-            self._process_query_result(query_dn, res)
+            res, ns = self.queryprovider.query(query_dn, rrtype='A')
+            self._process_query_result(query_dn, res, ns)
         self._start_prehashing()
         if self._aggressive > 0:
             self._map_aggressive(generator)

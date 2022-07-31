@@ -40,21 +40,28 @@ class NSECWalker(walker.Walker):
         dname = self.start
         covering_nsec = None
         while not self._finished(dname):
-            query_dn, recv_nsec = self._retrieve_nsec(dname, covering_nsec)
+            query_dn, recv_nsec, ns = self._retrieve_nsec(dname, covering_nsec)
             if len(recv_nsec) == 0:
                 msg = [
-                    'no NSEC RR received',
-                    "Maybe the zone doesn't support DNSSEC or uses NSEC3 RRs",
+                    'no NSEC RR received\n',
+                    "Maybe the zone doesn't support DNSSEC or uses NSEC3 RRs\n",
                     ]
                 if isinstance(self, NSECWalkerN) or isinstance(self,
                         NSECWalkerMixed):
-                    msg.append("or the server does not allow NSEC queries.")
+                    msg.append("or the server {} does not allow NSEC queries.\n"
+                            .format(ns))
                     msg.append("Perhaps try using --query-mode=A")
-                raise NSECWalkError('\n'.join(msg))
+                log.error(*msg)
+                self.queryprovider.add_ns_error(ns)
+                continue
             covering_nsec = self._find_covering_rr(recv_nsec, query_dn)
             if covering_nsec is None:
-                raise NSECWalkError("no covering NSEC RR received for domain name ",
+                log.errror("no covering NSEC RR received for domain name ",
                         str(dname))
+                self.queryprovider.add_ns_error(ns)
+                continue
+
+            ns.reset_errors()
 
             log.debug2('covering NSEC RR found: ', str(covering_nsec))
 
@@ -152,9 +159,9 @@ class NSECWalkerN(NSECWalker):
                     "\ndon't know how to continue enumeration.\n",
                     "Try using mixed or 'A' query mode instead.")
         query_dn = dname
-        result = self.queryprovider.query(query_dn, rrtype='NSEC')
+        result, ns = self.queryprovider.query(query_dn, rrtype='NSEC')
         recv_nsec = result.find_NSEC(in_answer=True)
-        return (query_dn, recv_nsec)
+        return (query_dn, recv_nsec, ns)
 
 class NSECWalkerA(NSECWalker):
     def __init__(self, zone, queryprovider, ldh = False, nsec_chain=None,
@@ -197,7 +204,7 @@ class NSECWalkerA(NSECWalker):
         else:
             query_dn = self._next_dn_label_add(dname)
         while True:
-            result = self.queryprovider.query(query_dn, rrtype='A')
+            result, ns = self.queryprovider.query(query_dn, rrtype='A')
             recv_nsec = result.find_NSEC()
             if len(recv_nsec) > 0:
                 break
@@ -206,20 +213,22 @@ class NSECWalkerA(NSECWalker):
                     log.info("hit an existing owner name: ",
                             str(query_dn))
                     query_dn = self._next_dn_extend_increase(query_dn)
+                    ns.reset_errors()
                     continue
                 else:
                     log.debug1("no NSEC records received for owner: ",
                             str(query_dn))
                     query_dn = self._next_dn_extend_increase(dname)
+                    ns.reset_errors()
                     continue
             elif result.status() != "NXDOMAIN":
                 # some other unexpected status:
-                raise NSECWalkError('unexpected response status: ',
-                        result.status())
+                log.error('unexpected response status: ', str(result.status()))
+                self.queryprovider.add_ns_error(ns)
             else:
                 break
 
-        return (query_dn, recv_nsec)
+        return (query_dn, recv_nsec, ns)
 
 class NSECWalkerMixed(NSECWalkerA):
 
@@ -231,7 +240,7 @@ class NSECWalkerMixed(NSECWalkerA):
         if self._is_subzone(last_nsec):
             query_dn = self._next_dn_extend_increase(last_nsec.owner)
             while True:
-                result = self.queryprovider.query(query_dn, rrtype='A')
+                result, ns = self.queryprovider.query(query_dn, rrtype='A')
                 recv_nsec = result.find_NSEC()
                 if len(recv_nsec) > 0:
                     break
@@ -240,15 +249,16 @@ class NSECWalkerMixed(NSECWalkerA):
                         log.info("hit an existing owner name: ",
                                 str(query_dn))
                         query_dn = self._next_dn_extend_increase(query_dn)
+                        ns.reset_errors()
                         continue
                 elif result.status() != "NXDOMAIN":
                     # some other unexpected status:
-                    raise NSECWalkError('unexpected response status: ',
-                            result.status())
+                    log.error('unexpected response status: ', str(result.status()))
+                    self.queryprovider.add_ns_error(ns)
                 else:
                     break
         else:
             query_dn = dname
-            result = self.queryprovider.query(query_dn, rrtype='NSEC')
+            result, ns = self.queryprovider.query(query_dn, rrtype='NSEC')
             recv_nsec = result.find_NSEC(in_answer=True)
-        return (query_dn, recv_nsec)
+        return (query_dn, recv_nsec, ns)
