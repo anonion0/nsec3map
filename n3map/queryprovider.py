@@ -133,12 +133,15 @@ class QueryProvider(object):
 
 
     def query_rate(self):
+        t = time.monotonic()
+        # discard any data older than 2 seconds:
+        while (len(self._qr_measurements) > 0 and
+                self._qr_measurements[0] + 2 < t):
+            self._qr_measurements.popleft()
         if len(self._qr_measurements) < 2:
             return 0.0
         else:
-            #return 1.0/((self._qr_measurements[-1] -
-            #        self._qr_measurements[0])/float(len(self._qr_measurements)))
-            interval = self._qr_measurements[-1] - self._qr_measurements[0]
+            interval = t - self._qr_measurements[0]
             return len(self._qr_measurements)/interval
 
     def _wait_query_interval(self):
