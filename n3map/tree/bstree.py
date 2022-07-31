@@ -52,7 +52,7 @@ class BSTree(object):
     def minimum(self, x=None):
         """Finds the node with the minimal key
 
-        Returns nil if tree is empty 
+        Returns nil if tree is empty
         Time complexity: O(lg n) (balanced)"""
         if x is None:
             x = self.root

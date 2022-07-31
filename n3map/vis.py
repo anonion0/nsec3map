@@ -8,9 +8,9 @@ ascii_printable = string.printable.encode("ascii")
 
 def vis(char):
     """ Returns True if a character is safe to print
-    
+
     char:    the character to test
-    
+
     """
     return char in ascii_printable
 
@@ -59,7 +59,7 @@ def strunvis(s):
         else:
             d_s.append(bytes([s[i]]))
         i += 1
-    
+
     if push is not None:
         raise ValueError
 

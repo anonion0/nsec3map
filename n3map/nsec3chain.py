@@ -18,7 +18,7 @@ class NSEC3Chain(object):
         values = []
         self.tree.inorder(lambda n: values.append(n.value))
         return values
-    
+
     def _check_salt(self, nsec3):
         if self.salt is None:
             self.salt = nsec3.salt
@@ -27,7 +27,7 @@ class NSEC3Chain(object):
             raise ZoneChangedError("NSEC3 salt changed")
         else:
             nsec3.salt = self.salt
-    
+
     def _check_iterations(self, nsec3):
         if self.iterations is None:
             self.iterations = nsec3.iterations
@@ -58,7 +58,7 @@ class NSEC3Chain(object):
         try:
             new, was_updated = self.tree.insert(key, None, int_end)
         except OverLapError:
-            raise ZoneChangedError("NSEC3 record overlaps with " + 
+            raise ZoneChangedError("NSEC3 record overlaps with " +
                     "another NSEC3 record")
         return (not was_updated)
 

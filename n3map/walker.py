@@ -36,7 +36,7 @@ def check_dnskey(zone, queryprovider):
     res = queryprovider.query(zone, rrtype='DNSKEY')
     dnskey_owner = res.find_DNSKEY()
     if dnskey_owner is None:
-        raise N3MapError("no DNSKEY RR found at ", zone, 
+        raise N3MapError("no DNSKEY RR found at ", zone,
                 "\nZone is not DNSSEC-enabled.")
     if dnskey_owner != zone:
         raise N3MapError("invalid DNSKEY RR received. Aborting")
@@ -46,13 +46,13 @@ def check_soa(zone, queryprovider):
     res = queryprovider.query(zone, rrtype='SOA')
     soa_owner = res.find_SOA()
     if soa_owner is None:
-        raise N3MapError("no SOA RR found at ", zone, 
+        raise N3MapError("no SOA RR found at ", zone,
                 "\nZone name may be incorrect.")
     if soa_owner != zone:
         raise N3MapError("invalid SOA RR received. Aborting")
 
 class Walker(object):
-    def __init__(self, 
+    def __init__(self,
                  zone,
                  queryprovider,
                  output_file=None,

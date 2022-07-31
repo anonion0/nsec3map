@@ -22,7 +22,6 @@ class NSEC3TreeNode(rbtree.RBTreeNode):
 
     def is_last(self):
         return (self.key >= self.int_end)
-    
 
 class NSEC3Tree(rbtree.RBTree):
     def __init__(self, node_type=NSEC3TreeNode, hash_max=2**160-1):
@@ -64,7 +63,7 @@ class NSEC3Tree(rbtree.RBTree):
     def update(self, x, new):
         if x.int_end != new.int_end:
             # same hashed owner name, but interval changed
-            log.warn("next hashed owner changed for existing NSEC3 record\n", 
+            log.warn("next hashed owner changed for existing NSEC3 record\n",
                             "zone may have changed")
             self.covered_distance += new.covered_distance(self.hash_max)
             self.covered_distance -= x.covered_distance(self.hash_max)
@@ -82,7 +81,7 @@ class NSEC3Tree(rbtree.RBTree):
         if suc is not None:
             if node.int_end > suc.key:
                 raise OverLapError
-    
+
     def insert(self, k, v, int_end):
         was_updated = False
         new = self.node_type(k=k, v=v, int_end=int_end)

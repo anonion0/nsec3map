@@ -51,9 +51,9 @@ def sample(data, n):
 
 def create_zone_predictor():
     if not HAS_NUMPY:
-        raise N3MapError("failed to start predictor: could not import numpy") 
+        raise N3MapError("failed to start predictor: could not import numpy")
     if not HAS_SCIPY:
-        raise N3MapError("failed to start predictor: could not import scipy") 
+        raise N3MapError("failed to start predictor: could not import scipy")
     par,chld = multiprocessing.Pipe(True)
     proc = PredictorProcess(chld)
     proc.start()
@@ -113,5 +113,5 @@ class PredictorProcess(multiprocessing.Process):
         binit = (1/lastcov*ydata[-1])
         ainit = 2.0*math.log(binit)
         a,b = compute_fit([ainit,binit],xdata,ydata)
-        current_records = self._coverage_data[-1][1] 
+        current_records = self._coverage_data[-1][1]
         return b if b >= current_records else current_records

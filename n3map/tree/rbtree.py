@@ -10,12 +10,12 @@ class RBTreeNode(bstree.BSTreeNode):
         super(RBTreeNode, self).__init__(k, v, nil)
         self.color = BLACK
         self.size = 0
-    
+
     def update_size(self):
         """Update the size attribute using the size attribute of left and right childs.
 
         Time complexity: O(1)"""
-        self.size = 1 + self.left.size + self.right.size 
+        self.size = 1 + self.left.size + self.right.size
 
 class RBTree(bstree.BSTree):
     """A Red-Black Binary Search Tree"""
@@ -98,7 +98,6 @@ class RBTree(bstree.BSTree):
                     self._left_rotate(new.parent.parent)
         self.root.color = BLACK
 
-                
     def _transplant(self, old, new):
         """Replace subtree rooted at node old with the subtree rooted at node new
 
@@ -159,7 +158,7 @@ class RBTree(bstree.BSTree):
                     self._right_rotate(x.parent)
                     x = self.root
         x.color = BLACK
-                    
+
     def _update_size(self, node):
         """Updates the size attribute on all nodes from node to the root.
 
@@ -174,7 +173,6 @@ class RBTree(bstree.BSTree):
             node = self.delete(node)
         return node
 
-    
     def delete(self, node):
         """Delete node from the tree, preserving all red-black properties.
 
@@ -243,7 +241,7 @@ class RBTree(bstree.BSTree):
 
         new.parent = y
         if y is self.nil:
-            self.root = new 
+            self.root = new
         elif new.key < y.key:
             y.left = new
         else:
@@ -259,6 +257,6 @@ class RBTree(bstree.BSTree):
 
     def size(self):
         """Returns the number of nodes stored in the tree.
-        
+
         Time complexity: O(1)"""
         return self.root.size

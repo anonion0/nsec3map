@@ -125,7 +125,7 @@ class QueryProvider(object):
             return len(self._qr_measurements)/interval
 
     def _wait_query_interval(self):
-        if (self.query_interval is not None and 
+        if (self.query_interval is not None and
                 self._last_query_time is not None):
 
             # the loop is needed because time.sleep()

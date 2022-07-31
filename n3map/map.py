@@ -84,7 +84,7 @@ def n3map_main(argv):
         stats = {}
         options['timeout'] /= 1000.0
         qprovider = queryprovider.QueryProvider(nslist,
-                timeout=options['timeout'], max_retries=options['max_retries'], 
+                timeout=options['timeout'], max_retries=options['max_retries'],
                 query_interval = options['query_interval'], stats=stats)
 
         if options['soa_check']:
@@ -139,17 +139,16 @@ def n3map_main(argv):
                     output_rrfile =  rrfile.open_output_rrfile(options['output'])
                 except IOError as e:
                     log.fatal("unable to open output file: ", str(e))
-        
 
         if options['zone_type'] == 'nsec3':
             if output_rrfile is not None:
                 output_rrfile.write_header(zone, "List of NSEC3 RRs")
             if options['label_counter'] is not None:
                 label_counter = options['label_counter']
-            walker = NSEC3Walker(zone, 
-                                 qprovider, 
-                                 hash_queues, 
-                                 process_pool, 
+            walker = NSEC3Walker(zone,
+                                 qprovider,
+                                 hash_queues,
+                                 process_pool,
                                  nsec3_records=[] if chain is None else chain,
                                  ignore_overlapping=options['ignore_overlapping'],
                                  label_counter=label_counter,
@@ -205,7 +204,6 @@ def n3map_main(argv):
     finally:
         if output_rrfile is not None:
             output_rrfile.close()
-    
     return 0
 
 def default_options():
@@ -276,7 +274,7 @@ def parse_arguments(argv):
         opts, args = getopt.gnu_getopt(argv[1:], opts, long_opts)
     except getopt.GetoptError as err:
         log.fatal_exit(2, err, "\n", "Try `",
-                str(os.path.basename(argv[0])), 
+                str(os.path.basename(argv[0])),
                 " --help' for more information.")
 
     for opt, arg in opts:
@@ -398,7 +396,7 @@ def parse_arguments(argv):
 
         elif opt in ('-s', '--start'):
             options['start'] = arg
-            
+
         elif opt in ('--timeout',):
             try:
                 options['timeout'] = int(arg)
@@ -428,7 +426,7 @@ def parse_arguments(argv):
 
     if len(args) < 1:
         log.fatal_exit(2, 'missing arguments', "\n", "Try `",
-                str(os.path.basename(argv[0])), 
+                str(os.path.basename(argv[0])),
                 " --help' for more information.")
     else:
         zone = n3map.name.fqdn_from_text(args[-1])
@@ -465,12 +463,12 @@ Enumeration:
   -3, --nsec3                use NSEC3 enumeration
   -n, --nsec                 use NSEC enumeration
   -o, --output=FILE          write all records to FILE (use '-' for stdout)
-  -i, --input=FILE           read records from FILE and continue 
+  -i, --input=FILE           read records from FILE and continue
                                the enumeration.
   -c, --continue=FILE        shortcut for --input FILE --output FILE
 
 NSEC Options:
-  -m, --query-mode=MODE      sets the query mode. Possible values are 
+  -m, --query-mode=MODE      sets the query mode. Possible values are
                                'mixed', 'A', and 'NSEC' (default {qmode:s})
   -M, --mixed                shortcut for --query-mode=mixed
   -A                         shortcut for --query-mode=A
@@ -479,7 +477,7 @@ NSEC Options:
   -l, --ldh                  use only lowercase characters, digits and hyphen in
                                queries
   -s, --start=DOMAIN
-  -e, --end=DOMAIN           use DOMAIN as the enumeration start-/endpoint. 
+  -e, --end=DOMAIN           use DOMAIN as the enumeration start-/endpoint.
                                DOMAIN is relative to the zone name.
 
 NSEC3 Options:
@@ -513,14 +511,14 @@ General Options:
                              limit the query rate (default = unlimited)
       --max-retries=N        limit the maximum number of retries when a DNS query
                                fails. N=-1 means no limit. (default {max_retries:d})
-      --timeout=N            timeout to wait for a server response, 
+      --timeout=N            timeout to wait for a server response,
                                in miliseconds (default {timeout:d})
       --detection-attempts=N limit the maximum number of zone type (NSEC/NSEC3)
                                detection attempts. N=0 specifies no limit.
                                (default {detection_attempts:d})
-      --omit-soa-check       don't check the SOA record of the zone 
+      --omit-soa-check       don't check the SOA record of the zone
                                before starting enumeration (use with caution).
-      --omit-dnskey-check    don't check the DNSKEY record of the zone 
+      --omit-dnskey-check    don't check the DNSKEY record of the zone
                                before starting enumeration (use with caution).
 '''.format(qmode=def_opts['query_mode'], processes=def_opts['processes'],
         queue_element_sz=def_opts['queue_element_size'],

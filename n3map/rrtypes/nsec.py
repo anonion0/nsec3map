@@ -11,7 +11,7 @@ class NSEC(rr.RR):
         self.next_owner = next_owner
         self.types = types
         self.sanity_check()
-    
+
     def sanity_check(self):
         if self.owner == self.next_owner:
             raise NSECError('invalid NSEC record, owner == next_owner')
@@ -22,7 +22,7 @@ class NSEC(rr.RR):
     def part_of_zone(self, zone):
         return (self.owner.part_of_zone(zone) and
                 self.next_owner.part_of_zone(zone))
-    
+
     def __str__(self):
         return '\t'.join((super(NSEC, self).__str__(), "NSEC", str(self.next_owner), ' '.join(self.types)))
 

@@ -27,7 +27,7 @@ def _process_label_generator(label_fun, gap, process_id, num_processes, init=0):
         lblstr = label_fun(l)
         yield (lblstr, l)
         l += 1
-    
+
 def create_prehash_pool(num_processes, element_size,
         use_cext):
     processes = []
@@ -66,7 +66,6 @@ class PreHashProcess(multiprocessing.Process):
         self.generator = None
         self.salt = None
         self.iterations = None
-        
 
     def run(self):
         try:
@@ -77,7 +76,7 @@ class PreHashProcess(multiprocessing.Process):
                     self.iterations) = self.pipe.recv()
             self.generator = _process_label_generator(label_fun =
                     self.label_fun, gap = 1024, process_id = self.id,
-                    num_processes = self.num_processes, 
+                    num_processes = self.num_processes,
                     init = label_counter_init)
             if self.use_cext:
                 self._precompute_hashes(self._hash_cext)

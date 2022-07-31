@@ -105,15 +105,15 @@ class Logger(object):
 received_sigwinch = False
 
 def sigwinch_handler(signum, frame):
-	global received_sigwinch
-	received_sigwinch = True
+    global received_sigwinch
+    received_sigwinch = True
 
 def setup_signal_handling():
     signal.signal(signal.SIGWINCH,sigwinch_handler)
     signal.siginterrupt(signal.SIGWINCH, False)
 
 def reset_signal_handling():
-	signal.signal(signal.SIGWINCH, signal.SIG_DFL)
+    signal.signal(signal.SIGWINCH, signal.SIG_DFL)
 
 class ProgressLineLogger(Logger):
     def __init__(self, loglevel=LOG_WARN, logfile=sys.stderr, colors='auto'):
@@ -221,7 +221,7 @@ class ProgressLineLogger(Logger):
 
     def _determine_screen_size(self):
         if self._file.isatty():
-            buf = array.array('h', [0, 0, 0, 0]) 
+            buf = array.array('h', [0, 0, 0, 0])
             res = fcntl.ioctl(self._file.fileno(), termios.TIOCGWINSZ, buf)
             if res != 0:
                 raise EnvironmentError("ioctl() failed")

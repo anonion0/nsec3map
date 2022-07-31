@@ -30,7 +30,7 @@ def hashcatify_main(argv):
             zone = re.sub('\.$', '', zone)
             iterations = "{0:d}".format(nsec3.iterations)
             salt = util.str_to_hex(nsec3.salt)
-            out.write(":".join((nsec3_hash, "." + zone, salt, iterations)) 
+            out.write(":".join((nsec3_hash, "." + zone, salt, iterations))
                     + "\n")
     except (IOError, N3MapError) as e:
         log.fatal(e)

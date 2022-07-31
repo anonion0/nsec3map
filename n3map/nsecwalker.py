@@ -53,16 +53,16 @@ class NSECWalker(walker.Walker):
                 raise NSECWalkError('\n'.join(msg))
             covering_nsec = self._find_covering_rr(recv_nsec, query_dn)
             if covering_nsec is None:
-                raise NSECWalkError("no covering NSEC RR received for domain name ", 
+                raise NSECWalkError("no covering NSEC RR received for domain name ",
                         str(dname))
 
             log.debug2('covering NSEC RR found: ', str(covering_nsec))
-            
+
             self._write_record(covering_nsec)
-            
+
             if (covering_nsec.owner > covering_nsec.next_owner and
                     covering_nsec.next_owner != self.zone):
-                raise NSECWalkError('NSEC owner > next_owner, ', 
+                raise NSECWalkError('NSEC owner > next_owner, ',
                         'but next_owner != zone')
 
             self.nsec_chain.append(covering_nsec)
@@ -99,7 +99,7 @@ class NSECWalker(walker.Walker):
             return self.zone
         else:
             return name.DomainName(
-                    *(name.domainname_from_text(startname).labels + 
+                    *(name.domainname_from_text(startname).labels +
                         self.zone.labels))
 
     def _get_end(self, endname):
@@ -107,10 +107,10 @@ class NSECWalker(walker.Walker):
             end = None
         else:
             end = name.DomainName(
-                    *(name.domainname_from_text(endname).labels + 
+                    *(name.domainname_from_text(endname).labels +
                         self.zone.labels))
         return end
-    
+
     def _get_start_end(self, startname, endname):
         start = self._get_start(startname)
         end = self._get_end(endname)
@@ -146,7 +146,6 @@ class NSECWalkerN(NSECWalker):
         log.info("starting enumeration in NSEC query mode...")
         return super(NSECWalkerN,self).walk()
 
-    
     def _retrieve_nsec(self, dname, last_nsec):
         if self._is_subzone(last_nsec):
             raise NSECWalkError('walked into subzone: ', str(last_nsec.owner),
@@ -187,7 +186,7 @@ class NSECWalkerA(NSECWalker):
 
     def _check_query_dn(self, query_dn):
         if not query_dn.part_of_zone(self.zone):
-            raise NSECWalkError('unable to increase ' + 
+            raise NSECWalkError('unable to increase ' +
                     'domain name any more.')
 
 

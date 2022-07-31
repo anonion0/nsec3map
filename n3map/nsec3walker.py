@@ -17,7 +17,7 @@ from .nsec3chain import NSEC3Chain
 class NSEC3Walker(walker.Walker):
     def __init__(self, zone, queryprovider, hash_queues, prehash_pool,
             nsec3_records, ignore_overlapping=False, label_counter=None,
-            output_file=None, stats=None,predictor=None, aggressive=0): 
+            output_file=None, stats=None,predictor=None, aggressive=0):
         super(NSEC3Walker, self).__init__(zone, queryprovider, output_file, stats)
         self.stats['tested_hashes'] = 0
 
@@ -55,7 +55,7 @@ class NSEC3Walker(walker.Walker):
                 log.info("hit an existing owner name: ", str(query_dn))
                 return
             elif res.status() == 'NXDOMAIN':
-                raise NSEC3WalkError('no NSEC3 RR received\n',  
+                raise NSEC3WalkError('no NSEC3 RR received\n',
                         "Maybe the zone doesn't support DNSSEC or uses NSEC RRs")
             else:
                 raise NSEC3WalkError('unexpected response status: ', res.status())
@@ -77,7 +77,7 @@ class NSEC3Walker(walker.Walker):
                              '(See https://tools.ietf.org/html/rfc7129#appendix-B)')
             was_new = self.nsec3_chain.insert(rr)
             if was_new:
-                log.debug1("discovered: ", str(rr.owner), " ", 
+                log.debug1("discovered: ", str(rr.owner), " ",
                         ' '.join(rr.types))
                 self._write_record(rr)
                 self._update_predictor_state()
@@ -139,7 +139,6 @@ class NSEC3Walker(walker.Walker):
         return self.nsec3_chain
 
 
-    
     def _find_uncovered_dn(self, generator, break_early=False):
         is_covered = self.nsec3_chain.covers
         while True:

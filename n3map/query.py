@@ -46,7 +46,7 @@ def _rrtypes_to_text(types):
 class DNSPythonResult(object):
     def __init__(self, dnspython_result):
         self._result = dnspython_result
-    
+
     def status(self):
         return dns.rcode.to_text(self._result.rcode())
 
@@ -72,7 +72,7 @@ class DNSPythonResult(object):
     def find_NSEC(self, in_answer=False):
         nsec = []
         for r in self._result.authority if not in_answer else self._result.answer:
-            if (r.rdclass == dns.rdataclass.IN and 
+            if (r.rdclass == dns.rdataclass.IN and
                     r.rdtype == dns.rdatatype.NSEC):
                 types = _rrtypes_from_window_list(r[0].windows)
                 nsec.append(rrtypes.nsec.NSEC(
@@ -92,7 +92,7 @@ class DNSPythonResult(object):
     def find_NSEC3(self):
         nsec3 = []
         for r in self._result.authority:
-            if (r.rdclass == dns.rdataclass.IN and 
+            if (r.rdclass == dns.rdataclass.IN and
                     r.rdtype == dns.rdatatype.NSEC3):
                 types = _rrtypes_from_window_list(r[0].windows)
                 nsec3.append(rrtypes.nsec3.NSEC3(
