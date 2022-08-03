@@ -4,13 +4,17 @@ import time
 import itertools
 import threading
 import queue
+import re
+import ipaddress
 
 from . import vis
+from .util import printsafe
 from . import query
 from . import log
 from .exception import (
         N3MapError,
         InvalidPortError,
+        InvalidAddressError,
         QueryError,
         TimeOutError,
         MaxRetriesError,
@@ -337,55 +341,107 @@ class NameServer(object):
     def reset_errors(self):
         self.errors = 0
 
+    def ip_str(self):
+        return str(self.ip)
 
     def __str__(self):
-        ip = str(self.ip)
-        name = str(self.name)
-        if name == ip:
+        try:
+            ipaddress.ip_address(self.name)
             name = ''
-        else:
-            name = ''.join((' (',name,')'))
-        return ''.join((ip,':',str(self.port),name))
+        except ValueError:
+            name = ' ({})'.format(self.name)
+
+        if self.port == DEFAULT_PORT:
+            return '{}{}'.format(self.ip, name)
+        elif self.ip.version == 6:
+            return '[{}]:{}{}'.format(self.ip, self.port, name)
+        return '{}:{}{}'.format(self.ip, self.port, name)
 
 
-def _resolve(host, port):
+def _resolve(host, port, protofamily=''):
     try:
-        ip_list = []
-        for info in socket.getaddrinfo(host, port, socket.AF_INET,
-                socket.SOCK_DGRAM, socket.IPPROTO_IP):
-            if info[0] == socket.AF_INET:
-                ip_list.append(info[4][0])
-        return ip_list
+        if protofamily == 'ipv4':
+            family = socket.AF_INET
+        elif protofamily == 'ipv6':
+            family = socket.AF_INET6
+        else:
+            family = 0
+        for info in socket.getaddrinfo(host, port, family,
+                socket.SOCK_DGRAM, socket.IPPROTO_UDP):
+            if info[0] == socket.AF_INET and (
+                    protofamily == '' or protofamily == 'ipv4'):
+                return ipaddress.ip_address(info[4][0])
+            elif info[0] == socket.AF_INET6 and (
+                    protofamily == '' or protofamily == 'ipv6'):
+                return ipaddress.ip_address(info[4][0])
+        return None
     except socket.gaierror as e:
         raise N3MapError("could not resolve host '" +
-                str(host) + "': " + str(e))
+                str(printsafe(host)) + "': " + str(e))
 
-def nameserver_from_text(*hosts):
+def port_from_s(s):
+    try:
+        p = int(s)
+    except ValueError:
+        raise InvalidPortError(str(v))
+
+    if p < 0 or p > 65535:
+        raise InvalidPortError(str(p))
+    return p
+
+
+def ip6_from_s(s):
+    try:
+        return ipaddress.IPv6Address(s)
+    except ipaddress.AddressValueError as e:
+        raise InvalidAddressError(str(e))
+
+pat_ipv6_hostp = re.compile(r'\[([:0-9a-fA-F]+)\]:([0-9]+)')
+pat_ipv6_host = re.compile(r'([:0-9a-fA-F]+)')
+pat_hostp = re.compile(r'(.*):([0-9]+)')
+
+def host_port_from_s(s):
+    m = pat_ipv6_hostp.fullmatch(s)
+    if m is not None:
+        ip = m.group(1)
+        port = m.group(2)
+        return (str(ip6_from_s(ip)), port_from_s(port))
+
+    m = pat_ipv6_host.fullmatch(s)
+    if m is not None:
+        ip = m.group(1)
+        return (str(ip6_from_s(ip)), DEFAULT_PORT)
+
+    m = pat_hostp.fullmatch(s)
+    if m is not None:
+        host = m.group(1)
+        port = m.group(2)
+        return (host, port_from_s(port))
+
+    return (s, DEFAULT_PORT)
+
+
+def nameserver_from_text(protofamily, *hosts):
     lst = []
     ns_dict = {}
     for s in hosts:
-        host = None
-        port = None
-        for i, v in enumerate(s.rsplit(':', 1)):
-            if i == 0:
-                host = v
-            else:
-                try:
-                    port = int(v)
-                except ValueError:
-                    raise InvalidPortError(str(v))
-        if port is None:
-            port = DEFAULT_PORT
-        for ip in _resolve(host, port):
-            ns = NameServer(ip, port, host)
-            if (ip, port) in ns_dict:
-                original = ns_dict[(ip, port)]
-                if host != original[0]:
-                    log.warn("nameserver {} is a duplicate of {}, ignoring it"
-                            .format(ns, original[1]))
-                continue
-            ns_dict[(ip, port)] = (host, ns)
-            lst.append(ns)
+        host, port = host_port_from_s(s)
+        ip = _resolve(host, port, protofamily)
+        if ip is None:
+            raise N3MapError("no suitable address found for nameserver '{}'"
+                    .format(printsafe(s)))
+
+        ns = NameServer(ip, port, host)
+        if (ip, port) in ns_dict:
+            original = ns_dict[(ip, port)]
+            if host != original[0]:
+                log.warn("nameserver {} is a duplicate of {}, ignoring it"
+                        .format(printsafe(s), str(original[1])))
+            continue
+        ns_dict[(ip, port)] = (host, ns)
+        lst.append(ns)
+    if len(lst) == 0:
+        raise N3MapError("no nameservers found!")
     return lst
 
 

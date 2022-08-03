@@ -49,12 +49,12 @@ def check_part_of_zone(rr, zone):
     if not rr.part_of_zone(zone):
         raise N3MapError(("not all read records are part of the specified zone"))
 
-def get_nameservers(zone, ns_names=None):
+def get_nameservers(zone, ipproto='', ns_names=None):
     if ns_names is not None:
-        return queryprovider.nameserver_from_text(*ns_names)
+        return queryprovider.nameserver_from_text(ipproto, *ns_names)
 
     ns_names = query_ns_records(zone)
-    nslist = queryprovider.nameserver_from_text(*ns_names)
+    nslist = queryprovider.nameserver_from_text(ipproto, *ns_names)
     for ns in nslist:
         log.info("using nameserver: ", str(ns))
     return nslist
@@ -80,7 +80,7 @@ def n3map_main(argv):
         n3map.__version__, str(zone)))
 
     try:
-        nslist = get_nameservers(zone, ns_names)
+        nslist = get_nameservers(zone, options['ipproto'], ns_names)
         stats = {}
         options['timeout'] /= 1000.0
         qprovider = queryprovider.QueryProvider(nslist,
@@ -231,6 +231,7 @@ def default_options():
             'progress' : True,
             'queue_element_size' : 256,
             'use_openssl' : True,
+            'ipproto' : '',
             }
     return opts
 
@@ -272,7 +273,7 @@ def parse_arguments(argv):
             'version'
     ]
     options = default_options()
-    opts = '3AMNabc:e:f:hi:lm:no:pqs:v'
+    opts = '346AMNabc:e:f:hi:lm:no:pqs:v'
     try:
         opts, args = getopt.gnu_getopt(argv[1:], opts, long_opts)
     except getopt.GetoptError as err:
@@ -293,6 +294,12 @@ def parse_arguments(argv):
 
         elif opt in ('-3', '--nsec3'):
             options['zone_type'] = 'nsec3'
+
+        elif opt in ('-4',):
+            options['ipproto'] = 'ipv4'
+
+        elif opt in ('-6',):
+            options['ipproto'] = 'ipv6'
 
         elif opt in ('-c', '--continue'):
             options['input'] = options['output'] = arg
@@ -536,6 +543,8 @@ General Options:
                                before starting enumeration (use with caution).
       --omit-dnskey-check    don't check the DNSKEY record of the zone
                                before starting enumeration (use with caution).
+      -4                     Use IPv4 only.
+      -6                     Use IPv6 only.
 '''.format(qmode=def_opts['query_mode'], processes=def_opts['processes'],
         queue_element_sz=def_opts['queue_element_size'],
         timeout=def_opts['timeout'], max_retries=def_opts['max_retries'],

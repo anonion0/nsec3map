@@ -33,3 +33,8 @@ def hex_to_str(s):
         raise ValueError
 
     return struct.pack('B'*len(bytes_list), *bytes_list)
+
+def printsafe(s):
+    return ''.join(map(lambda c: c if c.isprintable() else '\uFFFD', s))
+
+

@@ -124,7 +124,7 @@ def dnspython_query(dname, ns_ip, ns_port, rrtype, timeout):
 
 def query(dname, ns, rrtype, timeout):
     try:
-        res = dnspython_query(dname, ns.ip, ns.port, rrtype, timeout)
+        res = dnspython_query(dname, ns.ip_str(), ns.port, rrtype, timeout)
     except dns.exception.Timeout:
         return exception.TimeOutError()
     except dns.query.BadResponse:

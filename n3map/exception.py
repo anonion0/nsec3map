@@ -23,6 +23,10 @@ class InvalidPortError(N3MapError):
     def __str__(self):
         return "invalid port specified: " + str(self.args[0])
 
+class InvalidAddressError(N3MapError):
+    def __str__(self):
+        return "invalid address specified: " + str(self.args[0])
+
 class TimeOutError(N3MapError):
     def __str__(self):
         return 'timeout: ' + ''.join(map(str, self.args))
