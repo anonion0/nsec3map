@@ -45,8 +45,8 @@ class RRFile(object):
     def write_header(self, zone, title):
         self.f.write(';' *  80 + '\n')
         zonestr = " zone: " + str(zone)
-        self.f.write(';' + zonestr.center(79) + '\n')
-        self.f.write(';' + title.center(79) + '\n')
+        self.f.write(';' + zonestr.center(79).rstrip() + '\n')
+        self.f.write(';' + title.center(79).rstrip() + '\n')
         self.f.write(';' * 80 + '\n')
 
     def write_number_of_rrs(self, n):
