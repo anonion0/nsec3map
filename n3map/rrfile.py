@@ -1,6 +1,5 @@
 import re
 import gzip
-import bz2
 import os
 
 from . import log
@@ -20,12 +19,8 @@ _comment_pattern = r'^\s*([;#].*)?$'
 
 def _open(filename, mode):
     if filename.endswith(".gz"):
-        return gzip.open(filename, mode, encoding="utf-8")
-    elif filename.endswith(".bz2"):
-        return bz2.BZ2File(filename, mode, encoding="utf-8")
+        return gzip.open(filename, mode + 't', encoding="utf-8")
     return open(filename, mode, encoding="utf-8")
-
-
 
 def open_output_rrfile(filename):
     return RRFile(_open(filename, "w+"), filename)
