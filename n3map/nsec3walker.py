@@ -1,4 +1,5 @@
 import itertools
+import secrets
 
 from . import log
 from . import name
@@ -40,6 +41,11 @@ class NSEC3Walker(walker.Walker):
             log.debug2("setting initial label counter to 0x{0:x}".format(
                         label_counter))
             self._label_counter_init = label_counter
+        elif len(nsec3_records) > 0:
+            self._label_counter_init = secrets.randbits(60)
+            log.warn("could not restore label counter from input file\n",
+                    "picking an outrageous value at random instead: 0x{:x}"
+                    .format(self._label_counter_init))
         else:
             self._label_counter_init = 0
 
