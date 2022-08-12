@@ -16,7 +16,7 @@ def johnify_main(argv):
         if len(argv) < 2:
             usage(argv)
         if len(argv) == 3:
-            out = open(argv[2], "wb")
+            out = open(argv[2], "w")
         else:
             out = sys.stdout
 
