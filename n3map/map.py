@@ -59,6 +59,45 @@ def get_nameservers(zone, ipproto='', ns_names=None):
         log.info("using nameserver: ", str(ns))
     return nslist
 
+def read_input_file(input_filename, cont, zone, zone_type):
+    chain = None
+    records_file = None
+    label_counter = None
+    try:
+        records_file = rrfile.open_input_rrfile(input_filename)
+    except FileNotFoundError as e:
+        if cont:
+            log.info('zone file {} does not exist yet, creating it'
+                    .format(input_filename))
+            return (None, None)
+        else:
+            log.fatal("unable to open input file: \n", str(e))
+    try:
+        chain = []
+        if zone_type == 'nsec3':
+            for rr in records_file.nsec3_reader():
+                check_part_of_zone(rr, zone)
+                chain.append(rr)
+            label_counter = records_file.label_counter
+        elif zone_type == 'nsec':
+            for rr in records_file.nsec_reader():
+                check_part_of_zone(rr, zone)
+                chain.append(rr)
+    except IOError as e:
+        log.fatal("unable to read input file: \n", str(e))
+    except FileParseError as e:
+        log.fatal("unable to parse input file: \n", str(e))
+    finally:
+        if records_file is not None:
+            records_file.close()
+    if cont:
+        try:
+            records_file.into_backup()
+        except OSError as e:
+            log.fatal("failed to create backup file: \n", str(e))
+    return (chain, label_counter)
+
+
 
 def n3map_main(argv):
     log.logger = log.Logger()
@@ -109,37 +148,28 @@ def n3map_main(argv):
                 predictor = None
 
 
-        if options['input'] is not None:
-            records_file = None
+        if options['continue'] is not None:
+            chain, label_counter = read_input_file(options['continue'], True,
+                    zone, options['zone_type'])
             try:
-                records_file = rrfile.open_input_rrfile(options['input'])
-                chain = []
-                if options['zone_type'] == 'nsec3':
-                    for rr in records_file.nsec3_reader():
-                        check_part_of_zone(rr, zone)
-                        chain.append(rr)
-                    label_counter = records_file.label_counter
-                elif options['zone_type'] == 'nsec':
-                    for rr in records_file.nsec_reader():
-                        check_part_of_zone(rr, zone)
-                        chain.append(rr)
+                output_rrfile =  rrfile.open_output_rrfile(options['continue'])
             except IOError as e:
-                log.fatal("unable to read input file: \n", str(e))
-            except FileParseError as e:
-                log.fatal("unable to parse input file: \n", str(e))
-            finally:
-                if records_file is not None:
-                    records_file.close()
-                    records_file = None
+                log.fatal("unable to open output file: ", str(e))
+        else:
+            if options['input'] is not None:
+                chain, label_counter = read_input_file(options['input'], False,
+                        zone, options['zone_type'])
+            if options['output'] is not None:
+                if options['output'] == '-':
+                    output_rrfile = rrfile.RRFile(sys.stdout)
+                else:
+                    try:
+                        output_rrfile =  rrfile.open_output_rrfile(
+                                options['output'])
+                    except IOError as e:
+                        log.fatal("unable to open output file: ", str(e))
 
-        if options['output'] is not None:
-            if options['output'] == '-':
-                output_rrfile = rrfile.RRFile(sys.stdout)
-            else:
-                try:
-                    output_rrfile =  rrfile.open_output_rrfile(options['output'])
-                except IOError as e:
-                    log.fatal("unable to open output file: ", str(e))
+
 
         if options['zone_type'] == 'nsec3':
             if output_rrfile is not None:
@@ -188,15 +218,18 @@ def n3map_main(argv):
                                      endname=options['end'],
                                      stats=stats,
                                      output_file=output_rrfile)
-
+        finished = False
         if walker is not None:
             starttime = time.monotonic()
             walker.walk()
             elapsed = timedelta(seconds=time.monotonic() - starttime)
             log.info("finished mapping of {0:s} in {1:s}".format( str(zone), str(elapsed)))
+            finished = True
 
         if output_rrfile is not None:
             output_rrfile.write_stats(stats)
+            if finished and options['continue'] is not None:
+                output_rrfile.unlink_backup()
 
     except N3MapError as e:
         log.fatal(e)
@@ -212,6 +245,7 @@ def default_options():
             'zone_type' : 'auto',
             'output': None,
             'input' : None,
+            'continue' : None,
             'aggressive' : 0,
             'ignore_overlapping' : False,
             'query_mode' : 'mixed',
@@ -302,7 +336,7 @@ def parse_arguments(argv):
             options['ipproto'] = 'ipv6'
 
         elif opt in ('-c', '--continue'):
-            options['input'] = options['output'] = arg
+            options['continue'] = arg
 
         elif opt in ('-i', '--input'):
             options['input'] = arg
@@ -453,6 +487,10 @@ def parse_arguments(argv):
         else:
             ns_names = None
 
+    if options['continue'] is not None and (options['input'] is not None or
+            options['output'] is not None):
+        log.fatal_exit(2, 'Invalid arguments: use -c xor (-i or -o)')
+
     return (options, ns_names, zone)
 
 def version():
@@ -483,7 +521,9 @@ Enumeration:
   -o, --output=FILE          write all records to FILE (use '-' for stdout)
   -i, --input=FILE           read records from FILE and continue
                                the enumeration.
-  -c, --continue=FILE        shortcut for --input FILE --output FILE
+  -c, --continue=FILE        same as -i FILE -o FILE, but will preserve FILE as
+                               a backup file until the enumeration is finished.
+                               Will create FILE if it does not exist yet.
 
 NSEC Options:
   -m, --query-mode=MODE      sets the query mode. Possible values are

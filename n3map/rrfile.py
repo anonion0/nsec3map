@@ -1,6 +1,7 @@
 import re
 import gzip
 import bz2
+import os
 
 from . import log
 from .rrtypes import nsec
@@ -27,20 +28,38 @@ def _open(filename, mode):
 
 
 def open_output_rrfile(filename):
-    return RRFile(_open(filename, "w+"))
+    return RRFile(_open(filename, "w+"), filename)
 
 def open_input_rrfile(filename):
-    return RRFile(_open(filename, "r"))
+    return RRFile(_open(filename, "r"), filename)
 
 class RRFile(object):
-    def __init__(self, f):
+    def __init__(self, f, fname):
         self.f = f
+        self.filename = fname
         self.label_counter = None
 
     def close(self):
         if self.f is not None:
+            if self.f.writable():
+                # ensure data is written to disk before we try to delete the
+                # backup file
+                self.f.flush()
+                os.fsync(self.f.fileno())
             self.f.close()
             self.f = None
+
+    def _backup_filename(self):
+        return self.filename + '~'
+
+    def unlink_backup(self):
+        try:
+            os.unlink(self._backup_filename())
+        except OSError as e:
+            log.debug2("failed to unlink backup file: \n", str(e))
+
+    def into_backup(self):
+        os.replace(self.filename, self._backup_filename())
 
     def write_header(self, zone, title):
         self.f.write(';' *  80 + '\n')
@@ -60,7 +79,7 @@ class RRFile(object):
     def write_record(self, rr):
         self.f.write(str(rr) + '\n')
 
-    def _filename(self):
+    def _desc_filename(self):
         return self.f.name
 
     def nsec_reader(self):
@@ -75,16 +94,16 @@ class RRFile(object):
             try:
                 nsec = nsec_parse(line)
                 if nsec is None:
-                    raise FileParseError(self._filename(), i,
+                    raise FileParseError(self._desc_filename(), i,
                             "invalid file format")
                 yield nsec
             except ParseError:
-                raise FileParseError(self._filename(), i,
+                raise FileParseError(self._desc_filename(), i,
                         "could not parse NSEC record")
             except (NSECError,
                     MaxDomainNameLengthError,
                     MaxLabelLengthError) as e:
-                raise FileParseError(self._filename(), i,
+                raise FileParseError(self._desc_filename(), i,
                         "invalid NSEC record:\n" + str(e))
 
     def write_label_counter(self, label_counter):
@@ -102,7 +121,7 @@ class RRFile(object):
                 try:
                     self.label_counter = int(m_counter.group(1), 16)
                 except ValueError:
-                    raise FileParseError(self._filename(), i,
+                    raise FileParseError(self._desc_filename(), i,
                             "cannot parse label counter value")
                 continue
             elif p_ignore.match(line):
@@ -110,16 +129,16 @@ class RRFile(object):
             try:
                 nsec3 = nsec3_parse(line)
                 if nsec3 is None:
-                    raise FileParseError(self._filename(), i,
+                    raise FileParseError(self._desc_filename(), i,
                             "invalid file format")
                 yield nsec3
             except ParseError:
-                raise FileParseError(self._filename(), i,
+                raise FileParseError(self._desc_filename(), i,
                         "could not parse NSEC3 record")
             except (NSEC3Error,
                     MaxDomainNameLengthError,
                     MaxLabelLengthError) as e:
-                raise FileParseError(self._filename(), i,
+                raise FileParseError(self._desc_filename(), i,
                         "invalid NSEC3 record:\n" + str(e))
 
 def nsec_from_file(filename):

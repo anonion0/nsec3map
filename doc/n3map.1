@@ -29,7 +29,9 @@ In NSEC3 mode, the label counter value is also restored from FILE if
 present (see the \fI\-\-label-counter\fR option).
 .TP 
 \fB\-c\fR, \fB\-\-continue\fR=\fIFILE\fR
-Same as --input FILE --output FILE. 
+Same as --input FILE --output FILE, but will preserve FILE as a backup file
+until the enumeration is finished. Will create FILE if it does not exist yet.
+
 Note that the original input file is regenerated which means that any additional
 comments you may have made in FILE will be lost.
 
