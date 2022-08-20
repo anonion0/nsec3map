@@ -155,7 +155,7 @@ def parser():
             iterations = int(m.group(3))
             salt  = m.group(4)
             if salt == '-':
-                salt =""
+                salt = b""
             else:
                 salt = util.hex_to_str(m.group(4))
             next_hashed_owner = util.base32_ext_hex_decode(m.group(5))
