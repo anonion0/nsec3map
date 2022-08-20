@@ -206,7 +206,7 @@ Limitations
 
 (remember that nsec3map is still mostly a PoC tool...)
 
-[NSEC]: http://www.ietf.org/rfc/rfc4034.txt "Resource Records for the DNS Security Extensions"
-[NSEC3]: http://www.ietf.org/rfc/rfc5155.txt "DNS Security (DNSSEC) Hashed Authenticated Denial of Existence"
+[NSEC]: https://www.ietf.org/rfc/rfc4034.txt "Resource Records for the DNS Security Extensions"
+[NSEC3]: https://www.ietf.org/rfc/rfc5155.txt "DNS Security (DNSSEC) Hashed Authenticated Denial of Existence"
 [JtR]: https://github.com/openwall/john "John the Ripper (Jumbo)"
 [hashcat]: https://hashcat.net/hashcat/ "hashcat"
