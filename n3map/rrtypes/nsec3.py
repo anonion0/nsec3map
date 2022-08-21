@@ -112,7 +112,7 @@ class NSEC3(rr.RR):
                       str(self.algorithm),
                       str(self.flags),
                       str(self.iterations),
-                      (util.str_to_hex(self.salt) if len(self.salt) > 0 else '-'),
+                      (self.salt.hex() if len(self.salt) > 0 else '-'),
                       util.base32_ext_hex_encode(self.next_hashed_owner).lower()
                       .decode())),
             ' '.join(self.types)))

@@ -23,10 +23,10 @@ def johnify_main(argv):
         records_file = rrfile.open_input_rrfile(argv[1])
 
         for nsec3 in records_file.nsec3_reader():
-            nsec3_hash = util.str_to_hex(nsec3.hashed_owner)
+            nsec3_hash = nsec3.hashed_owner.hex()
             zone = str(nsec3.zone)
             iterations = "{0:d}".format(nsec3.iterations)
-            salt = util.str_to_hex(nsec3.salt)
+            salt = nsec3.salt.hex()
             out.write("$NSEC3$" + "$".join((iterations, salt,
                 nsec3_hash, zone)) + "\n")
     except (IOError, N3MapError) as e:

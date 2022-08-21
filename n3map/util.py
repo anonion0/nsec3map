@@ -14,10 +14,6 @@ def base32_ext_hex_encode(s):
 def base32_ext_hex_decode(s):
     return base64.b32decode(s.upper().translate(b32_ext_hex_to_b32))
 
-def str_to_hex(s):
-    hex_list = ["{0:02x}".format(b) for b in struct.unpack('B'*len(s), s)]
-    return ''.join(hex_list)
-
 def printsafe(s):
     return ''.join(map(lambda c: c if c.isprintable() else '\uFFFD', s))
 

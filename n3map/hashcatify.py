@@ -29,7 +29,7 @@ def hashcatify_main(argv):
             zone = str(nsec3.zone)
             zone = re.sub('\.$', '', zone)
             iterations = "{0:d}".format(nsec3.iterations)
-            salt = util.str_to_hex(nsec3.salt)
+            salt = nsec3.salt.hex()
             out.write(":".join((nsec3_hash, "." + zone, salt, iterations))
                     + "\n")
     except (IOError, N3MapError) as e:

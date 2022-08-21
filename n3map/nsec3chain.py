@@ -22,7 +22,7 @@ class NSEC3Chain(object):
     def _check_salt(self, nsec3):
         if self.salt is None:
             self.salt = nsec3.salt
-            log.debug2("salt = 0x", util.str_to_hex(self.salt))
+            log.debug2("salt = 0x", self.salt.hex())
         elif self.salt != nsec3.salt:
             raise ZoneChangedError("NSEC3 salt changed")
         else:
