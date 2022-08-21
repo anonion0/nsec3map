@@ -157,7 +157,7 @@ def parser():
             if salt == '-':
                 salt = b""
             else:
-                salt = util.hex_to_str(m.group(4))
+                salt = bytes.fromhex(m.group(4))
             next_hashed_owner = util.base32_ext_hex_decode(m.group(5))
             types = m.group(6).strip()
             if not types.isprintable():

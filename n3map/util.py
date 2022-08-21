@@ -18,22 +18,6 @@ def str_to_hex(s):
     hex_list = ["{0:02x}".format(b) for b in struct.unpack('B'*len(s), s)]
     return ''.join(hex_list)
 
-def hex_to_str(s):
-    bytes_list = []
-    push = None
-    for c in s:
-        if push is not None:
-            push = push + c
-            if len(push) == 2:
-                bytes_list.append(int(push, 16))
-                push = None
-        else:
-            push = c
-    if push is not None:
-        raise ValueError
-
-    return struct.pack('B'*len(bytes_list), *bytes_list)
-
 def printsafe(s):
     return ''.join(map(lambda c: c if c.isprintable() else '\uFFFD', s))
 
