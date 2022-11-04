@@ -8,6 +8,7 @@ import dns.query
 import dns.rcode
 import dns.rdataclass
 import dns.rdatatype
+import dns.flags
 
 from . import name
 from .rrtypes import nsec3
@@ -118,6 +119,8 @@ def dnspython_query(dname, ns_ip, ns_port, rrtype, timeout):
                                payload = 4096)
     r = dns.query.udp(q, ns_ip, port=ns_port, timeout=timeout,
             ignore_unexpected=True)
+    if r.flags & dns.flags.TC:
+        r = dns.query.tcp(q, ns_ip, port=ns_port, timeout=timeout)
 
     return DNSPythonResult(r)
 
