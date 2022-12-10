@@ -13,7 +13,7 @@ setup(
         long_description_content_type = "text/markdown",
         url = "https://github.com/anonion0/nsec3map",
         author = "Ralf Sager",
-        author_email = "nsec3map(at)3fnc.org",
+        author_email = "nsec3map@3fnc.org",
         packages = find_packages(),
         ext_modules = [
             Extension(
