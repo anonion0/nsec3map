@@ -132,6 +132,19 @@ The records can then be cracked simply by running `hashcat` on the resulting fil
 Installation
 ------------
 
+### From PyPI
+
+To install nsec3map from PyPI, simply run:
+
+    python3 -m pip install n3map[predict]
+
+If you do not care about NSEC3 zone size prediction and don't want
+numpy and scipy installed, you can use:
+
+    python3 -m pip install n3map
+
+### From Git Repository
+
 Dependencies:
 
   * Python >= 3.9
