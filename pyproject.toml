@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "n3map"
+description = "Enumerate DNS zones based on DNSSEC records"
+dynamic = ["version"]
+authors = [
+	{ name = "Ralf Sager", email = "nsec3map@3fnc.org" },
+]
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "COPYING" }
+dependencies = [
+	"dnspython",
+]
+
+keywords = ["security",  "network", "cryptography",
+	 "dns", "dnssec", "nsec", "nsec3", "scanner"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Telecommunications Industry",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: POSIX",
+    "Programming Language :: C",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Topic :: Security :: Cryptography",
+    "Topic :: System :: Networking",
+    "Topic :: Internet :: Name Service (DNS)",
+    "Topic :: Internet",
+]
+
+[project.optional-dependencies]
+predict = [ "numpy", "scipy" ]
+
+[project.scripts]
+n3map = 'n3map.map:main'
+n3map-johnify = 'n3map.johnify:main'
+n3map-hashcatify = 'n3map.hashcatify:main'
+n3map-nsec3-lookup = 'n3map.nsec3lookup:main'
+
+[project.urls]
+"Homepage" = "https://github.com/anonion0/nsec3map"
+
+[tool.setuptools.dynamic]
+version = {attr = "n3map.__version__"}
+
+[tool.setuptools]
+data-files = { 'share/man/man1' = [
+                'doc/n3map.1',
+                'doc/n3map-nsec3-lookup.1',
+                'doc/n3map-johnify.1',
+                'doc/n3map-hashcatify.1',
+                ] }
+
