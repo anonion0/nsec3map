@@ -161,7 +161,7 @@ def n3map_main(argv):
                         zone, options['zone_type'])
             if options['output'] is not None:
                 if options['output'] == '-':
-                    output_rrfile = rrfile.RRFile(sys.stdout)
+                    output_rrfile = rrfile.RRFileStream(sys.stdout)
                 else:
                     try:
                         output_rrfile =  rrfile.open_output_rrfile(

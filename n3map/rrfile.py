@@ -28,11 +28,16 @@ def open_output_rrfile(filename):
 def open_input_rrfile(filename):
     return RRFile(_open(filename, "r"), filename)
 
-class RRFile(object):
-    def __init__(self, f, fname):
+class RRFileStream(object):
+    def __init__(self, f):
         self.f = f
-        self.filename = fname
         self.label_counter = None
+
+    def fsync(self):
+        pass
+
+    def seek(self, offset):
+        pass
 
     def close(self):
         if self.f is not None:
@@ -40,21 +45,9 @@ class RRFile(object):
                 # ensure data is written to disk before we try to delete the
                 # backup file
                 self.f.flush()
-                os.fsync(self.f.fileno())
+                self.fsync()
             self.f.close()
             self.f = None
-
-    def _backup_filename(self):
-        return self.filename + '~'
-
-    def unlink_backup(self):
-        try:
-            os.unlink(self._backup_filename())
-        except OSError as e:
-            log.debug2("failed to unlink backup file: \n", str(e))
-
-    def into_backup(self):
-        os.replace(self.filename, self._backup_filename())
 
     def write_header(self, zone, title):
         self.f.write(';' *  80 + '\n')
@@ -79,7 +72,7 @@ class RRFile(object):
 
     def nsec_reader(self):
         log.info("reading NSEC RRs from ", str(self.f.name))
-        self.f.seek(0)
+        self.seek(0)
         p_ignore = re.compile(_comment_pattern)
         nsec_parse = rrtypes.nsec.parser()
         for i, line in enumerate(self.f):
@@ -101,12 +94,9 @@ class RRFile(object):
                 raise FileParseError(self._desc_filename(), i,
                         "invalid NSEC record:\n" + str(e))
 
-    def write_label_counter(self, label_counter):
-        self.f.write(";;;; label_counter = 0x{0:x}\n".format(label_counter))
-
     def nsec3_reader(self):
         log.info("reading NSEC3 RRs from ", str(self.f.name))
-        self.f.seek(0)
+        self.seek(0)
         p_counter = re.compile("^;;;; label_counter\s*=\s*0x([0-9a-fA-F]+)")
         p_ignore = re.compile(_comment_pattern)
         nsec3_parse = rrtypes.nsec3.parser()
@@ -135,6 +125,35 @@ class RRFile(object):
                     MaxLabelLengthError) as e:
                 raise FileParseError(self._desc_filename(), i,
                         "invalid NSEC3 record:\n" + str(e))
+
+    def write_label_counter(self, label_counter):
+        self.f.write(";;;; label_counter = 0x{0:x}\n".format(label_counter))
+
+
+class RRFile(RRFileStream):
+    def __init__(self, f, fname):
+        super().__init__(f)
+        self.filename = fname
+
+    def fsync(self):
+        os.fsync(self.f.fileno())
+
+    def seek(self, offset):
+        self.f.seek(offset)
+
+    def _backup_filename(self):
+        return self.filename + '~'
+
+    def unlink_backup(self):
+        try:
+            os.unlink(self._backup_filename())
+        except OSError as e:
+            log.debug2("failed to unlink backup file: \n", str(e))
+
+    def into_backup(self):
+        os.replace(self.filename, self._backup_filename())
+
+
 
 def nsec_from_file(filename):
     """Read NSEC records from a file"""
