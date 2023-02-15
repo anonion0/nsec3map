@@ -8,6 +8,8 @@ class NSEC3TreeNode(rbtree.RBTreeNode):
         self.int_end = int_end
 
     def covers(self, k):
+        if self.is_only():
+            return True
         if self.is_last():
             return (k >= self.key or k <= self.int_end)
         return k >= self.key and k <= self.int_end
@@ -15,6 +17,8 @@ class NSEC3TreeNode(rbtree.RBTreeNode):
     def covered_distance(self, hash_max):
         l1 = int.from_bytes(self.key, "big")
         l2 = int.from_bytes(self.int_end, "big")
+        if self.is_only():
+            return hash_max
         if self.is_last():
             return hash_max - l1 + l2
         return l2-l1
@@ -23,8 +27,12 @@ class NSEC3TreeNode(rbtree.RBTreeNode):
     def is_last(self):
         return (self.key >= self.int_end)
 
+    def is_only(self):
+        # 1 record covers entire zone
+        return (self.key == self.int_end)
+
 class NSEC3Tree(rbtree.RBTree):
-    def __init__(self, node_type=NSEC3TreeNode, hash_max=2**160-1):
+    def __init__(self, hash_max, node_type=NSEC3TreeNode):
         super(NSEC3Tree, self).__init__(node_type)
         self.last = None
         self.hash_max = hash_max

@@ -13,14 +13,20 @@ from ..exception import (
 
 SHA1 = 1
 SHA1_LENGTH = 20
+SHA1_MAX = 2**160-1
 
 def distance_covered(hashed_owner, next_hashed_owner):
+    if hashed_owner == next_hashed_owner:
+        # empty zone case
+        return SHA1_MAX
     return abs(int.from_bytes(next_hashed_owner, "big") -
                 int.from_bytes(hashed_owner, "big"))
 
 def covered_by_nsec3_interval(nsec3_hash, hashed_owner, next_hashed_owner):
     if hashed_owner >= next_hashed_owner:
         # this is the last NSEC3 record in a chain
+        # this will also catch the empty zone case in which
+        # there is a single record with hashed_owner == next_hashed_owner
         return (nsec3_hash >= hashed_owner or nsec3_hash <= next_hashed_owner)
     return (nsec3_hash >= hashed_owner and nsec3_hash <= next_hashed_owner)
 
@@ -34,8 +40,6 @@ class NSEC3(rr.RR):
         self.salt = salt
         self.next_hashed_owner = next_hashed_owner
         self.types = types
-        self.sanity_check()
-
 
     @property
     def owner(self):
@@ -83,10 +87,6 @@ class NSEC3(rr.RR):
             raise NSEC3Error("NSEC3 RR: invalid number of iterations")
         self._iterations = v
 
-    def sanity_check(self):
-        if self.hashed_owner == self.next_hashed_owner:
-            raise NSEC3Error('NSEC3 RR: invalid owner/next owner')
-
     def part_of_zone(self, zone):
         return (zone == self.zone)
 
@@ -102,9 +102,6 @@ class NSEC3(rr.RR):
 
     def covers_hash(self, nsec3_hash):
         return covered_by_nsec3_interval(nsec3_hash, self.hashed_owner, self.next_hashed_owner)
-
-    def covers_dname(self, dname):
-        return dname.covered_by(self.owner, self.next_hashed_owner_dn())
 
     def __str__(self):
         return '\t'.join((super(NSEC3, self).__str__(),

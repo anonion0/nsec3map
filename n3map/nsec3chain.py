@@ -2,10 +2,11 @@ from . import log
 from . import util
 from .exception import ZoneChangedError
 from .tree.nsec3tree import NSEC3Tree, OverLapError
+from .rrtypes.nsec3 import SHA1_MAX
 
 class NSEC3Chain(object):
     def __init__(self, iterable=None, ignore_overlapping=False):
-        self.tree = NSEC3Tree()
+        self.tree = NSEC3Tree(hash_max=SHA1_MAX)
         self.salt = None
         self.iterations = None
         self.zone = None
