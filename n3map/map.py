@@ -45,6 +45,25 @@ def _query_interval(s):
         raise ValueError
 
 
+def _human_number(s):
+    units = {
+            'K': 1000,
+            'M': 1000000,
+            'G': 1000000000,
+            'T': 1000000000000,
+            }
+    m = re.fullmatch(r'(\d+)([a-zA-Z]?)', s)
+    if m is None:
+        raise ValueError
+    n = int(m.group(1))
+    unit = m.group(2)
+    if unit != '':
+        try:
+            n *= units[unit.upper()]
+        except KeyError:
+            raise ValueError
+    return n
+
 def check_part_of_zone(rr, zone):
     if not rr.part_of_zone(zone):
         raise N3MapError(("not all read records are part of the specified zone"))
@@ -368,10 +387,8 @@ def parse_arguments(argv):
 
         elif opt in ('--hashlimit',):
             try:
-                options['hashlimit'] = int(arg)
+                options['hashlimit'] = _human_number(arg)
             except ValueError:
-                invalid_argument(opt, arg)
-            if options['hashlimit'] < 0:
                 invalid_argument(opt, arg)
 
         elif opt in ('--ignore-overlapping',):
@@ -578,7 +595,8 @@ NSEC3 Options:
       --processes=N          defines the number of pre-hashing processes.
                                Default is 1 or the number of CPUs - 1 on
                                multiprocessor systems ({processes:d} on this system)
-      --hashlimit=N          stop the enumeration after checking N hashes, even
+      --hashlimit=N[K|M|G|T]
+                             stop the enumeration after checking N hashes, even
                                if it is not finished. Default = 0 (unlimited).
 
 Advanced NSEC3 Options:
