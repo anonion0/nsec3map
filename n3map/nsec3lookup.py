@@ -48,7 +48,7 @@ def nsec3lookup_main(argv):
             if opt == '-z':
                 zone = n3map.name.fqdn_from_text(arg)
             if opt == '-o':
-                out = open(arg, "wb")
+                out = open(arg, "w")
             if opt == '-v':
                 log.logger.loglevel += 1
 
