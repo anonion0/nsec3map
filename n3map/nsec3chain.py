@@ -45,7 +45,7 @@ class NSEC3Chain(object):
             nsec3.zone = self.zone
 
     def insert(self, nsec3):
-        """Inersts an NSEC3 record into the tree.
+        """Inserts an NSEC3 record into the tree.
 
         Returns True if the record didn't already exist in the tree, False
         otherwise
