@@ -144,6 +144,9 @@ class NSEC3Walker(walker.Walker):
 
     def walk(self):
         log.info("starting NSEC3 enumeration...")
+        if self.hashlimit > 0:
+            log.info("will stop after checking ~{} hashes"
+                     .format(self.hashlimit))
         self._set_status_generator()
         try:
             self._map_zone()
