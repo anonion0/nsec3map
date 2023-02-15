@@ -132,6 +132,12 @@ Note that this option might slow down the enumeration process (experimental)
 \fB\-\-processes\fR=\fIN\fR
 Specifies the number of NSEC3 hash calculation processes to use.
 By default the number is the number of CPUs - 1 (minimum 1).
+.TP
+\fB\-\-hashlimit\fR=\fIN\fR
+Stop the enumeration after checking N hashes, even if it is not finished.
+Use this option to prevent n3map from wasting cpu cycles in a (possibly futile)
+attempt to extract the last few records of a zone.
+Default = 0 (unlimited).
 
 .SS Advanced NSEC3 Options
 These options are for advanced users and are rarely needed. They should be used

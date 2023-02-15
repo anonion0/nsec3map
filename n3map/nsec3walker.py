@@ -11,16 +11,18 @@ from .queryprovider import create_aggressive_qp
 
 from .statusline import format_statusline_nsec3
 
-from .exception import N3MapError, NSEC3WalkError
+from .exception import N3MapError, NSEC3WalkError, HashLimitReached
 from .nsec3chain import NSEC3Chain
 
 
 class NSEC3Walker(walker.Walker):
     def __init__(self, zone, queryprovider, hash_queues, prehash_pool,
             nsec3_records, ignore_overlapping=False, label_counter=None,
-            output_file=None, stats=None,predictor=None, aggressive=0):
+            output_file=None, stats=None, predictor=None, aggressive=0,
+            hashlimit=0):
         super(NSEC3Walker, self).__init__(zone, queryprovider, output_file, stats)
         self.stats['tested_hashes'] = 0
+        self.hashlimit = hashlimit
 
         self._prediction_current = None
         if predictor is not None:
@@ -99,18 +101,23 @@ class NSEC3Walker(walker.Walker):
         queries = {}
         max_queries = self._aggressive
         oldqp = self.queryprovider
-        self.queryprovider = create_aggressive_qp(self.queryprovider, max_queries)
-        while not self.nsec3_chain.covers_zone():
-            num_queries = len(queries)
-            query_dn,dn_hash = self._find_uncovered_dn(generator, num_queries > 0)
-            results = self.queryprovider.collectresponses(block=(num_queries >= max_queries))
-            for qid, (res, ns) in results:
-                self._process_query_result(queries.pop(qid),res, ns)
-            if query_dn is None or self.nsec3_chain.covers(dn_hash):
-                continue
-            queries[self.queryprovider.query_ff(query_dn, rrtype='A')] = query_dn
-        self.queryprovider.stop()
-        self.queryprovider = oldqp
+        self.queryprovider = create_aggressive_qp(self.queryprovider,
+                                                  max_queries)
+        try:
+            while not self.nsec3_chain.covers_zone():
+                num_queries = len(queries)
+                query_dn,dn_hash = self._find_uncovered_dn(generator,
+                                                           num_queries > 0)
+                results = self.queryprovider.collectresponses(
+                        block=(num_queries >= max_queries))
+                for qid, (res, ns) in results:
+                    self._process_query_result(queries.pop(qid),res, ns)
+                if query_dn is None or self.nsec3_chain.covers(dn_hash):
+                    continue
+                queries[self.queryprovider.query_ff(query_dn, rrtype='A')] = query_dn
+        finally:
+            self.queryprovider.stop()
+            self.queryprovider = oldqp
 
     def _map_normal(self, generator):
         while not self.nsec3_chain.covers_zone():
@@ -147,6 +154,7 @@ class NSEC3Walker(walker.Walker):
             self._stop_predictor()
             raise e
         finally:
+            log.update()
             log.logger.set_status_generator(None, None)
 
         return self.nsec3_chain
@@ -164,6 +172,9 @@ class NSEC3Walker(walker.Walker):
                     return dn,dn_hash
 
             self.stats['tested_hashes'] += len(self._prehash_list)
+            if (self.hashlimit > 0 and
+                    self.stats['tested_hashes'] >= self.hashlimit):
+                raise HashLimitReached
             hashes, label_counter_state = next(self._hash_queues).recv()
             if self._label_counter_state < label_counter_state:
                 self._label_counter_state = label_counter_state

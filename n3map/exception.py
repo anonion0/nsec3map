@@ -15,6 +15,9 @@ class NSEC3Error(N3MapError):
 class NSEC3WalkError(N3MapError):
     pass
 
+class HashLimitReached(N3MapError):
+    pass
+
 class ZoneChangedError(N3MapError):
     def __str__(self):
         return ''.join(map(str, self.args)) + '\nzone may have been modified'
@@ -61,6 +64,7 @@ class InvalidDomainNameError(N3MapError):
 class MaxLabelLengthError(N3MapError):
     def __str__(self):
         return "maximum domain name label length exceeded"
+
 class MaxLabelValueError(N3MapError):
     def __str__(self):
         return "maximum domain name label value exceeded"

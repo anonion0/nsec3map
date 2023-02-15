@@ -11,7 +11,7 @@ from . import prehash
 from . import queryprovider
 from .query import query_ns_records
 from . import rrfile
-from .exception import N3MapError, FileParseError
+from .exception import N3MapError, FileParseError, HashLimitReached
 from .nsec3walker import NSEC3Walker
 from .predict import create_zone_predictor
 from .nsecwalker import NSECWalkerN, NSECWalkerMixed, NSECWalkerA
@@ -187,7 +187,9 @@ def n3map_main(argv):
                                  output_file=output_rrfile,
                                  stats=stats,
                                  predictor=predictor,
-                                 aggressive=options['aggressive'])
+                                 aggressive=options['aggressive'],
+                                 hashlimit=options['hashlimit']
+                                 )
 
         elif options['zone_type'] == 'nsec':
             if output_rrfile is not None:
@@ -222,9 +224,18 @@ def n3map_main(argv):
         finished = False
         if walker is not None:
             starttime = time.monotonic()
-            walker.walk()
+            stopped_prematurely = False
+            try:
+                walker.walk()
+            except HashLimitReached:
+                stopped_prematurely = True
             elapsed = timedelta(seconds=time.monotonic() - starttime)
-            log.info("finished mapping of {0:s} in {1:s}".format( str(zone), str(elapsed)))
+            if stopped_prematurely:
+                log.info("stopped mapping of {0:s} after {1:s}: hashlimit reached"
+                         .format( str(zone), str(elapsed)))
+            else:
+                log.info("finished mapping of {0:s} in {1:s}"
+                         .format( str(zone), str(elapsed)))
             finished = True
 
         if output_rrfile is not None:
@@ -254,6 +265,7 @@ def default_options():
             'start' : None,
             'end' : None,
             'label_counter' : None,
+            'hashlimit' : 0,
             'timeout' : 2500,
             'max_retries' : 5,
             'max_errors' : 1,
@@ -284,6 +296,7 @@ def parse_arguments(argv):
             'ignore-overlapping',
             'input=',
             'label-counter=',
+            'hashlimit=',
             'ldh',
             'limit-rate=',
             'max-retries=',
@@ -351,6 +364,14 @@ def parse_arguments(argv):
             except ValueError:
                 invalid_argument(opt, arg)
             if options['label_counter']  < 0:
+                invalid_argument(opt, arg)
+
+        elif opt in ('--hashlimit',):
+            try:
+                options['hashlimit'] = int(arg)
+            except ValueError:
+                invalid_argument(opt, arg)
+            if options['hashlimit'] < 0:
                 invalid_argument(opt, arg)
 
         elif opt in ('--ignore-overlapping',):
@@ -557,6 +578,8 @@ NSEC3 Options:
       --processes=N          defines the number of pre-hashing processes.
                                Default is 1 or the number of CPUs - 1 on
                                multiprocessor systems ({processes:d} on this system)
+      --hashlimit=N          stop the enumeration after checking N hashes, even
+                               if it is not finished. Default = 0 (unlimited).
 
 Advanced NSEC3 Options:
   Use with caution.
