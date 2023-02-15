@@ -10,11 +10,6 @@ class NSEC(rr.RR):
         super(NSEC, self).__init__(owner, ttl, cls)
         self.next_owner = next_owner
         self.types = types
-        self.sanity_check()
-
-    def sanity_check(self):
-        if self.owner == self.next_owner:
-            raise NSECError('invalid NSEC record, owner == next_owner')
 
     def covers(self, dname):
         return dname.covered_by(self.owner, self.next_owner)
