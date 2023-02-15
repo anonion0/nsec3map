@@ -19,10 +19,6 @@ from .nsecwalker import NSECWalkerN, NSECWalkerMixed, NSECWalkerA
 import n3map.name
 import n3map.walker
 
-def _compute_query_interval(n, unit):
-    units = { 's': 1.0, 'm' : 60.0, 'h': 3600.0 }
-    return units[unit]/n
-
 def _def_num_of_processes():
     try:
         ncpus = multiprocessing.cpu_count()
@@ -33,6 +29,10 @@ def _def_num_of_processes():
     if ncpus > 1:
         return ncpus - 1
     return 1
+
+def _compute_query_interval(n, unit):
+    units = { 's': 1.0, 'm' : 60.0, 'h': 3600.0 }
+    return units[unit]/n
 
 def _query_interval(s):
     p = re.compile('^(([0-9]\.|[1-9][0-9]*[.]?)[0-9]*)/([smh])$')
