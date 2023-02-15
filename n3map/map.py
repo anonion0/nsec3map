@@ -54,7 +54,8 @@ def get_nameservers(zone, ipproto='', ns_names=None):
         return queryprovider.nameserver_from_text(ipproto, *ns_names)
 
     ns_names = query_ns_records(zone)
-    nslist = queryprovider.nameserver_from_text(ipproto, *ns_names)
+    nslist = queryprovider.nameserver_from_text(ipproto, *ns_names,
+                                                ignore_unresolved=True)
     for ns in nslist:
         log.info("using nameserver: ", str(ns))
     return nslist

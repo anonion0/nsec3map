@@ -27,6 +27,9 @@ class InvalidAddressError(N3MapError):
     def __str__(self):
         return "invalid address specified: " + str(self.args[0])
 
+class NameResolutionError(N3MapError):
+    pass
+
 class TimeOutError(N3MapError):
     def __str__(self):
         return 'timeout: ' + ''.join(map(str, self.args))

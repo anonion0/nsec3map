@@ -15,6 +15,7 @@ from .exception import (
         N3MapError,
         InvalidPortError,
         InvalidAddressError,
+        NameResolutionError,
         QueryError,
         TimeOutError,
         MaxRetriesError,
@@ -374,9 +375,10 @@ def _resolve(host, port, protofamily=''):
             elif info[0] == socket.AF_INET6 and (
                     protofamily == '' or protofamily == 'ipv6'):
                 return ipaddress.ip_address(info[4][0])
-        return None
+        raise NameResolutionError("no suitable address found for host '{}'"
+                .format(printsafe(host)))
     except socket.gaierror as e:
-        raise N3MapError("could not resolve host '" +
+        raise NameResolutionError("could not resolve host '" +
                 str(printsafe(host)) + "': " + str(e))
 
 def port_from_s(s):
@@ -421,15 +423,19 @@ def host_port_from_s(s):
     return (s, DEFAULT_PORT)
 
 
-def nameserver_from_text(protofamily, *hosts):
+def nameserver_from_text(protofamily, *hosts, ignore_unresolved=False):
     lst = []
     ns_dict = {}
     for s in hosts:
         host, port = host_port_from_s(s)
-        ip = _resolve(host, port, protofamily)
-        if ip is None:
-            raise N3MapError("no suitable address found for nameserver '{}'"
-                    .format(printsafe(s)))
+        try:
+            ip = _resolve(host, port, protofamily)
+        except NameResolutionError as e:
+            estr = "failed to resolve nameserver: {}".format(str(e))
+            if ignore_unresolved:
+                log.warn(estr)
+                continue
+            raise N3MapError(estr)
 
         ns = NameServer(ip, port, host)
         if (ip, port) in ns_dict:
