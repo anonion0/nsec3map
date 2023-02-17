@@ -92,8 +92,9 @@ class NSECWalker(walker.Walker):
             log.debug2('received NSEC RR: ' + str(nsec))
         for nsec in recv_rr:
             if not nsec.part_of_zone(self.zone):
-                raise NSECWalkError("received invalid NSEC RR, not part of " +
-                                    + "zone:" + str(nsec))
+                log.warn("received invalid NSEC RR, not part of zone: "
+                         + str(nsec))
+                continue
             if ((inclusive and nsec.covers(query_dn)) or
                     (not inclusive and nsec.covers_exclusive(query_dn))
                     or nsec.next_owner == self.zone):
