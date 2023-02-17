@@ -222,7 +222,8 @@ def n3map_main(argv):
                                          startname=options['start'],
                                          endname=options['end'],
                                          stats=stats,
-                                         output_file=output_rrfile)
+                                         output_file=output_rrfile,
+                                         never_prefix_label=options['no_prefix_labels'])
             elif options['query_mode'] == "A":
                 walker = NSECWalkerA(zone,
                                      qprovider,
@@ -231,7 +232,8 @@ def n3map_main(argv):
                                      startname=options['start'],
                                      endname=options['end'],
                                      stats=stats,
-                                     output_file=output_rrfile)
+                                     output_file=output_rrfile,
+                                     never_prefix_label=options['no_prefix_labels'])
             else:
                 walker = NSECWalkerN(zone,
                                      qprovider,
@@ -283,6 +285,7 @@ def default_options():
             'query_chars' : 'binary',
             'start' : None,
             'end' : None,
+            'no_prefix_labels' : False,
             'label_counter' : None,
             'hashlimit' : 0,
             'timeout' : 2500,
@@ -333,6 +336,7 @@ def parse_arguments(argv):
             'queue-element-size=',
             'quiet',
             'start=',
+            'no-prefix-labels',
             'timeout=',
             'no-openssl',
             'verbose',
@@ -413,6 +417,9 @@ def parse_arguments(argv):
 
         elif opt in ('-b', '--binary'):
             options['query_chars'] = 'binary'
+
+        elif opt in ('--no-prefix-labels',):
+            options['no_prefix_labels'] = True
 
         elif opt in ('-e', '--end'):
             options['end'] = arg
@@ -576,6 +583,13 @@ NSEC Options:
   -s, --start=DOMAIN
   -e, --end=DOMAIN           use DOMAIN as the enumeration start-/endpoint.
                                DOMAIN is relative to the zone name.
+
+      --no-prefix-labels     do not add leading labels ("\\x00.") to increment
+                               query names. Applies to 'A' query mode.
+                               This will result in incomplete enumeration for
+                               many zones, but is useful to avoid descending
+                               into subzones when querying non-authoritative
+                               namservers or to speed up the enumeration of TLDs.
 
 NSEC3 Options:
   -f, --aggressive=N         send up to N queries in parallel. This may speed

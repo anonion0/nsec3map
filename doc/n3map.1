@@ -103,6 +103,13 @@ End as soon as enumeration reaches the domain NAME. NAME is interpreted relative
 to the zone name. The NAME may be an arbitrary domain name that does not need to
 actually exist in the zone.
 
+.TP 
+\fB\-\-no\-prefix\-labels\fR
+do not add leading labels ("\\x00.") to increment query names. Applies to 'A'
+query mode.  This will result in incomplete enumeration for many zones, but is
+useful to avoid descending into subzones when querying non-authoritative
+namservers or to speed up the enumeration of TLDs.
+
 .SS NSEC3 Options
 .TP
 \fB\-f\fR, \fB\-\-aggressive\fR=\fIN\fR

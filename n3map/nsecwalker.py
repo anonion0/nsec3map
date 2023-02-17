@@ -189,10 +189,12 @@ class NSECWalkerN(NSECWalker):
 
 class NSECWalkerA(NSECWalker):
     def __init__(self, zone, queryprovider, ldh = False, nsec_chain=None,
-            startname=None, endname=None, output_file=None, stats=None):
+            startname=None, endname=None, output_file=None, stats=None,
+                 never_prefix_label=False):
         super(NSECWalkerA, self).__init__(zone, queryprovider, nsec_chain,
                 startname, endname, output_file, stats)
         self.ldh = ldh
+        self._never_prefix_label = never_prefix_label
 
     def walk(self):
         log.info("starting enumeration in A query mode...")
@@ -288,6 +290,11 @@ class NSECWalkerA(NSECWalker):
                     # increase label (e.g. www -> www\x00)
                     self._next_dn_extend_increase(last_nsec.owner)
                     )
+
+        if (self._never_prefix_label and not
+                (dname == self.start and self.start == self.zone)):
+            return self._retrieve_nsec_mode_a(
+                    self._next_dn_extend_increase(dname))
 
         return self._retrieve_nsec_mode_a(
                 # add label (e.g. www -> \x00.www)
