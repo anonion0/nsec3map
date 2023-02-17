@@ -136,12 +136,31 @@ class NSECWalker(walker.Walker):
                 )
         log.logger.set_status_generator(status_generator, format_statusline_nsec)
 
-    def _is_subzone(self, nsec):
+    def _is_subzone_start(self, nsec):
         if (nsec is not None and 'SOA' in nsec.types and
                 nsec.owner != self.zone):
-            log.warn("SOA RR detected, skipping subzone: ", str(nsec.owner))
+            # walked into a subzone which is also signed and served by this
+            # nameserver
+            log.warn("subdomain NSEC record detected (has SOA RRtype), " +
+                     "trying to skip subzone: ",
+                     str(nsec.owner))
             return True
         return False
+
+    def _detect_subdomain_soa(self, queryresult):
+        soa_owner = queryresult.find_SOA(in_answer=False)
+        if (soa_owner is not None and soa_owner != self.zone
+                and soa_owner.part_of_zone(self.zone)):
+            # walked into a subzone
+            # we didn't get an NSEC record so self.is_subzone_start()
+            # won't do the trick, but we should get the SOA of
+            # the subzone as soon as we hit a non-existing owner
+            # This might still be fragile...
+            log.warn("subdomain SOA RR received, trying to skip subzone: ",
+                     str(soa_owner))
+            return True
+        return False
+
 
 class NSECWalkerN(NSECWalker):
     def __init__(self, zone, queryprovider, nsec_chain=None, startname=None,
@@ -154,13 +173,18 @@ class NSECWalkerN(NSECWalker):
         return super(NSECWalkerN,self).walk()
 
     def _retrieve_nsec(self, dname, last_nsec):
-        if self._is_subzone(last_nsec):
+        if self._is_subzone_start(last_nsec):
             raise NSECWalkError('walked into subzone: ', str(last_nsec.owner),
                     "\ndon't know how to continue enumeration.\n",
                     "Try using mixed or 'A' query mode instead.")
         query_dn = dname
         result, ns = self.queryprovider.query(query_dn, rrtype='NSEC')
         recv_nsec = result.find_NSEC(in_answer=True)
+        if len(recv_nsec) == 0 and self._detect_subdomain_soa(result):
+            raise NSECWalkError('walked into subzone: ',
+                                str(query_dn),
+                    "\ndon't know how to continue enumeration.\n",
+                    "Try using mixed or 'A' query mode instead.")
         return (query_dn, recv_nsec, ns)
 
 class NSECWalkerA(NSECWalker):
@@ -196,13 +220,12 @@ class NSECWalkerA(NSECWalker):
             raise NSECWalkError('unable to increase ' +
                     'domain name any more.')
 
+    def _retrieve_nsec_mode_a(self, query_dn, base_query_dn=None):
+        """Try to extract NSEC records using A queries
 
-    def _retrieve_nsec(self, dname, last_nsec):
-        recv_nsec = []
-        if self._is_subzone(last_nsec):
-            query_dn = self._next_dn_extend_increase(last_nsec.owner)
-        else:
-            query_dn = self._next_dn_label_add(dname)
+        base_query_dn is query_dn without any labels added on the left side.
+        """
+
         while True:
             result, ns = self.queryprovider.query(query_dn, rrtype='A')
             recv_nsec = result.find_NSEC()
@@ -210,25 +233,67 @@ class NSECWalkerA(NSECWalker):
                 break
             elif result.status() == "NOERROR":
                 if result.answer_length() > 0:
-                    log.info("hit an existing owner name: ",
-                            str(query_dn))
+                    log.info("hit an existing owner name: ", str(query_dn))
                     query_dn = self._next_dn_extend_increase(query_dn)
                     ns.reset_errors()
                     continue
-                else:
-                    log.debug1("no NSEC records received for owner: ",
+                elif base_query_dn is not None:
+                    # this happens when the query name with added label (usually
+                    # \x00) in front is part of a zone delegated to a different
+                    # nameserver
+                    log.debug1("got NOERROR response but no RRs for owner: ",
                             str(query_dn))
-                    query_dn = self._next_dn_extend_increase(dname)
+                    log.debug1("this owner is likely part of a domain " +
+                               "delegated to a different nameserver, " +
+                               "trying to skip it")
+                    # we take the base_query_dn without the added (\x00) label
+                    # and increase it to skip this zone
+                    query_dn = self._next_dn_extend_increase(base_query_dn)
+                    base_query_dn = None
                     ns.reset_errors()
                     continue
             elif result.status() != "NXDOMAIN":
                 # some other unexpected status:
                 log.error('unexpected response status: ', str(result.status()))
                 self.queryprovider.add_ns_error(ns)
-            else:
-                break
+            else: # status is NXDOMAIN
+                if base_query_dn is not None:
+                    if self._detect_subdomain_soa(result):
+                        # this happens when the query name with added label
+                        # (usually \x00) in front is part of a different zone,
+                        # but that zone is also served by this server
+                        pass
+                    else:
+                        # AFAIK this shouldn't happen (at least not when
+                        # querying authoritative nameservers)
+                        # but lets try to continue anyway after barking loudly
+                        log.warn("got NXDOMAIN response without NSEC or " +
+                                "subdomain SOA RR\n" +
+                                "probably walked into a subzone *somehow*, " +
+                                "trying to skip it")
 
+                    # try to skip the subzone we walked into
+                    query_dn = self._next_dn_extend_increase(base_query_dn)
+                    base_query_dn = None
+                    ns.reset_errors()
+                    continue
+                # no nsec records received:
+                break
         return (query_dn, recv_nsec, ns)
+
+
+    def _retrieve_nsec(self, dname, last_nsec):
+        if self._is_subzone_start(last_nsec):
+            return self._retrieve_nsec_mode_a(
+                    # increase label (e.g. www -> www\x00)
+                    self._next_dn_extend_increase(last_nsec.owner)
+                    )
+
+        return self._retrieve_nsec_mode_a(
+                # add label (e.g. www -> \x00.www)
+                self._next_dn_label_add(dname),
+                dname
+                )
 
 class NSECWalkerMixed(NSECWalkerA):
 
@@ -237,28 +302,18 @@ class NSECWalkerMixed(NSECWalkerA):
         return NSECWalker.walk(self)
 
     def _retrieve_nsec(self, dname, last_nsec):
-        if self._is_subzone(last_nsec):
-            query_dn = self._next_dn_extend_increase(last_nsec.owner)
-            while True:
-                result, ns = self.queryprovider.query(query_dn, rrtype='A')
-                recv_nsec = result.find_NSEC()
-                if len(recv_nsec) > 0:
-                    break
-                elif result.status() == "NOERROR":
-                    if result.answer_length() > 0:
-                        log.info("hit an existing owner name: ",
-                                str(query_dn))
-                        query_dn = self._next_dn_extend_increase(query_dn)
-                        ns.reset_errors()
-                        continue
-                elif result.status() != "NXDOMAIN":
-                    # some other unexpected status:
-                    log.error('unexpected response status: ', str(result.status()))
-                    self.queryprovider.add_ns_error(ns)
-                else:
-                    break
+        if self._is_subzone_start(last_nsec):
+            (query_dn, recv_nsec, ns) = self._retrieve_nsec_mode_a(
+                    # increase label (e.g. www -> www\x00)
+                    self._next_dn_extend_increase(last_nsec.owner)
+                    )
         else:
             query_dn = dname
             result, ns = self.queryprovider.query(query_dn, rrtype='NSEC')
             recv_nsec = result.find_NSEC(in_answer=True)
+            if len(recv_nsec) == 0 and self._detect_subdomain_soa(result):
+                # walked into a subzone
+                (query_dn, recv_nsec, ns) = self._retrieve_nsec_mode_a(
+                        self._next_dn_extend_increase(query_dn)
+                        )
         return (query_dn, recv_nsec, ns)

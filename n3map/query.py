@@ -51,8 +51,8 @@ class DNSPythonResult(object):
     def status(self):
         return dns.rcode.to_text(self._result.rcode())
 
-    def find_SOA(self):
-        for r in self._result.answer:
+    def find_SOA(self, in_answer=True):
+        for r in self._result.answer if in_answer else self._result.authority:
             if (r.rdclass == dns.rdataclass.IN and
                     r.rdtype == dns.rdatatype.SOA):
                 return name.domainname_from_wire(
