@@ -104,7 +104,7 @@ class NSEC3Walker(walker.Walker):
                 self._update_predictor_state()
         return got_new
 
-    def _map_aggressive(self, generator):
+    def _map_aggressive(self):
         queries = {}
         max_queries = self._aggressive
         oldqp = self.queryprovider
@@ -113,8 +113,7 @@ class NSEC3Walker(walker.Walker):
         try:
             while not self.nsec3_chain.covers_zone():
                 num_queries = len(queries)
-                query_dn,dn_hash = self._find_uncovered_dn(generator,
-                                                           num_queries > 0)
+                query_dn,dn_hash = self._find_uncovered_dn(num_queries > 0)
                 results = self.queryprovider.collectresponses(
                         block=(num_queries >= max_queries))
                 for qid, (res, ns) in results:
@@ -126,9 +125,9 @@ class NSEC3Walker(walker.Walker):
             self.queryprovider.stop()
             self.queryprovider = oldqp
 
-    def _map_normal(self, generator):
+    def _map_normal(self):
         while not self.nsec3_chain.covers_zone():
-            query_dn,dn_hash = self._find_uncovered_dn(generator)
+            query_dn,dn_hash = self._find_uncovered_dn()
             result, ns = self.queryprovider.query(query_dn, rrtype='A')
             self._process_query_result(query_dn, result, ns)
 
@@ -141,9 +140,9 @@ class NSEC3Walker(walker.Walker):
             self._label_counter_init += 1
         self._start_prehashing()
         if self._aggressive > 0:
-            self._map_aggressive(generator)
+            self._map_aggressive()
         else:
-            self._map_normal(generator)
+            self._map_normal()
 
         self._write_number_of_records(self.nsec3_chain.size())
         self._stop_prehashing()
@@ -171,7 +170,7 @@ class NSEC3Walker(walker.Walker):
         return self.nsec3_chain
 
 
-    def _find_uncovered_dn(self, generator, break_early=False):
+    def _find_uncovered_dn(self, break_early=False):
         is_covered = self.nsec3_chain.covers
         while True:
             for ptlabel,dn_hash in self._prehash_iter:
