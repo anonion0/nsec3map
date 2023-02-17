@@ -80,8 +80,10 @@ class NSEC3Walker(walker.Walker):
         # TODO: check if records cover query name
         for rr in recv_rr:
             log.debug2('received NSEC3 RR: ', str(rr))
+        for rr in recv_rr:
             if not rr.part_of_zone(self.zone):
-                raise NSEC3WalkError('NSEC3 RR not part of zone')
+                log.warn('NSEC3 RR not part of zone: ', str(rr))
+                continue
 
             # check if the record is minimally-covering
             #  ref 'NSEC3 White Lies':
