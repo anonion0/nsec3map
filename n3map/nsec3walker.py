@@ -74,9 +74,12 @@ class NSEC3Walker(walker.Walker):
                 self.queryprovider.add_ns_error(ns)
                 return
         ns.reset_errors()
-        self._insert_records(recv_nsec3)
+        if not self._insert_records(recv_nsec3):
+            log.warn("did not receive any new NSEC3 records for query: ",
+                     str(query_dn))
 
     def _insert_records(self, recv_rr):
+        got_new = False
         # TODO: check if records cover query name
         for rr in recv_rr:
             log.debug2('received NSEC3 RR: ', str(rr))
@@ -94,10 +97,12 @@ class NSEC3Walker(walker.Walker):
                              '(See https://tools.ietf.org/html/rfc7129#appendix-B)')
             was_new = self.nsec3_chain.insert(rr)
             if was_new:
+                got_new = True
                 log.debug1("discovered: ", str(rr.owner), " ",
                         ' '.join(rr.types))
                 self._write_record(rr)
                 self._update_predictor_state()
+        return got_new
 
     def _map_aggressive(self, generator):
         queries = {}
