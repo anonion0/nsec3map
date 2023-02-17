@@ -16,7 +16,7 @@ class RR(object):
 
 def parser():
     """Returns a parser for a general resource record"""
-    p = re.compile(r'^(([a-zA-Z0-9\\_-]+\.)+|\.)\s+([0-9]|[1-9][0-9]*)\s+IN\s+(.*)$')
+    p = re.compile(r'^(([a-zA-Z0-9\\_*-]+\.)+|\.)\s+([0-9]|[1-9][0-9]*)\s+IN\s+(.*)$')
     def rr_from_text(s):
         m = p.match(s)
         try:

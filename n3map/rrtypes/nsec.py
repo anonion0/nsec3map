@@ -22,7 +22,7 @@ class NSEC(rr.RR):
         return '\t'.join((super(NSEC, self).__str__(), "NSEC", str(self.next_owner), ' '.join(self.types)))
 
 def parser():
-    p_nsec = re.compile(r'^NSEC\s+(([a-zA-Z0-9\\_-]+\.|\.)+)((\s+[A-Z0-9]+)*)\s*$')
+    p_nsec = re.compile(r'^NSEC\s+(([a-zA-Z0-9\\_*-]+\.|\.)+)((\s+[A-Z0-9]+)*)\s*$')
     rr_parse = rr.parser()
     def nsec_from_text(s):
         try:
