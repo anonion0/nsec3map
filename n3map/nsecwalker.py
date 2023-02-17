@@ -271,8 +271,8 @@ class NSECWalkerA(NSECWalker):
                         # but lets try to continue anyway after barking loudly
                         log.warn("got NXDOMAIN response without NSEC or " +
                                 "subdomain SOA RR\n" +
-                                "probably walked into a subzone *somehow*, " +
-                                "trying to skip it")
+                                 "probably we *somehow* walked into a subzone: "
+                                 , str(base_query_dn), "\ntrying to skip it")
 
                     # try to skip the subzone we walked into
                     query_dn = self._next_dn_extend_increase(base_query_dn)
