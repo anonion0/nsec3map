@@ -266,6 +266,11 @@ class DomainName(object):
             return (self >= owner or self <= next_owner)
         return (self >= owner and self <= next_owner)
 
+    def covered_by_exclusive(self, owner, next_owner):
+        if owner >= next_owner:
+            return (self > owner or self < next_owner)
+        return (self > owner and self < next_owner)
+
 
     def part_of_zone(self, zone):
         if len(self.labels) >= len(zone.labels):

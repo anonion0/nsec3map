@@ -56,7 +56,7 @@ class NSECWalker(walker.Walker):
                 continue
             covering_nsec = self._find_covering_rr(recv_nsec, query_dn)
             if covering_nsec is None:
-                log.errror("no covering NSEC RR received for domain name ",
+                log.error("no covering NSEC RR received for domain name ",
                         str(dname))
                 self.queryprovider.add_ns_error(ns)
                 continue
@@ -86,14 +86,17 @@ class NSECWalker(walker.Walker):
         return (((dname is not None and dname == self.zone) or (self.end is not
             None and dname >= self.end)) and len(self.nsec_chain) > 0)
 
-
-    def _find_covering_rr(self, recv_rr, query_dn):
+    def _find_covering_rr(self, recv_rr, query_dn, inclusive=True):
         covering_nsec = None
         for nsec in recv_rr:
             log.debug2('received NSEC RR: ' + str(nsec))
+        for nsec in recv_rr:
             if not nsec.part_of_zone(self.zone):
-                raise NSECWalkError("received invalid NSEC RR, not part of zone")
-            if nsec.covers(query_dn) or nsec.next_owner == self.zone:
+                raise NSECWalkError("received invalid NSEC RR, not part of " +
+                                    + "zone:" + str(nsec))
+            if ((inclusive and nsec.covers(query_dn)) or
+                    (not inclusive and nsec.covers_exclusive(query_dn))
+                    or nsec.next_owner == self.zone):
                 covering_nsec = nsec
                 break
         return covering_nsec
@@ -232,26 +235,60 @@ class NSECWalkerA(NSECWalker):
             result, ns = self.queryprovider.query(query_dn, rrtype='A')
             recv_nsec = result.find_NSEC()
             if len(recv_nsec) > 0:
+                if base_query_dn is not None:
+                    covering_nsec = self._find_covering_rr(recv_nsec, query_dn,
+                                                           inclusive=False)
+                    if covering_nsec is None:
+                        log.warn("did not receive a covering NSEC RR for ",
+                                 str(query_dn),
+                                 "\ntrying to skip potential subzone ",
+                                 str(base_query_dn))
+                        query_dn = self._next_dn_extend_increase(base_query_dn)
+                        base_query_dn = None
+                        continue
                 break
             elif result.status() == "NOERROR":
                 if result.answer_length() > 0:
-                    log.info("hit an existing owner name: ", str(query_dn))
-                    query_dn = self._next_dn_extend_increase(query_dn)
+                    log.warn("hit an existing owner name: ", str(query_dn))
+                    log.warn("trying to skip it")
+                    if base_query_dn is not None:
+                        # so it has come to this...
+                        # we've added a label in front to try and skip over
+                        # base_query_dn, but that label actually exists e.g.
+                        # to get the record after "www", we ask for "0.www",
+                        # but "0.www" actually exists.
+                        # TODO:
+                        # We could add another label ("0.0.wwww") and ask for
+                        # that, but first we would need to make sure query_dn is
+                        # not in fact a subzone (e.g. by asking for the SOA RR)
+                        #
+                        # For now, lets just make sure we do not end up
+                        # enumerating any subzone and skip the thing entirely
+                        if self.ldh:
+                            log.warn("using --binary would likely prevent ",
+                                     "this issue")
+                        query_dn = self._next_dn_extend_increase(base_query_dn)
+                        base_query_dn = None
+                    else:
+                        query_dn = self._next_dn_extend_increase(query_dn)
                     ns.reset_errors()
                     continue
-                elif base_query_dn is not None:
+                else:
                     # this happens when the query name with added label (usually
-                    # \x00) in front is part of a zone delegated to a different
-                    # nameserver
-                    log.debug1("got NOERROR response but no RRs for owner: ",
+                    # \x00) in front is part of a zone delegated to a (possibly
+                    # different) nameserver
+                    log.info("got NOERROR response but no RRs for owner: ",
                             str(query_dn))
-                    log.debug1("this owner is likely part of a domain " +
+                    log.info("this owner is likely part of a domain " +
                                "delegated to a different nameserver, " +
                                "trying to skip it")
                     # we take the base_query_dn without the added (\x00) label
                     # and increase it to skip this zone
-                    query_dn = self._next_dn_extend_increase(base_query_dn)
-                    base_query_dn = None
+                    if base_query_dn is not None:
+                        query_dn = self._next_dn_extend_increase(base_query_dn)
+                        base_query_dn = None
+                    else:
+                        query_dn = self._next_dn_extend_increase(query_dn)
                     ns.reset_errors()
                     continue
             elif result.status() != "NXDOMAIN":
@@ -291,8 +328,15 @@ class NSECWalkerA(NSECWalker):
                     self._next_dn_extend_increase(last_nsec.owner)
                     )
 
-        if (self._never_prefix_label and not
-                (dname == self.start and self.start == self.zone)):
+        if dname == self.start and self.start == self.zone:
+            return self._retrieve_nsec_mode_a(
+                    # add label (e.g. www -> \x00.www)
+                    self._next_dn_label_add(dname),
+                    # pass None because we don't want to increase the first
+                    # label of the zone name
+                    None
+                    )
+        elif self._never_prefix_label:
             return self._retrieve_nsec_mode_a(
                     self._next_dn_extend_increase(dname))
 
@@ -307,6 +351,7 @@ class NSECWalkerMixed(NSECWalkerA):
     def walk(self):
         log.info("starting enumeration in mixed query mode...")
         return NSECWalker.walk(self)
+
 
     def _retrieve_nsec(self, dname, last_nsec):
         if self._is_subzone_start(last_nsec):

@@ -14,6 +14,9 @@ class NSEC(rr.RR):
     def covers(self, dname):
         return dname.covered_by(self.owner, self.next_owner)
 
+    def covers_exclusive(self, dname):
+        return dname.covered_by_exclusive(self.owner, self.next_owner)
+
     def part_of_zone(self, zone):
         return (self.owner.part_of_zone(zone) and
                 self.next_owner.part_of_zone(zone))
