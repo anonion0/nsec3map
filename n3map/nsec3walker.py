@@ -138,6 +138,7 @@ class NSEC3Walker(walker.Walker):
             query_dn = name.DomainName(next(generator)[0], *self.zone.labels)
             res, ns = self.queryprovider.query(query_dn, rrtype='A')
             self._process_query_result(query_dn, res, ns)
+            self._label_counter_init += 1
         self._start_prehashing()
         if self._aggressive > 0:
             self._map_aggressive(generator)
