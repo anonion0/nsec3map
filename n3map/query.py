@@ -70,6 +70,21 @@ class DNSPythonResult(object):
     def answer_length(self):
         return len(self._result.answer)
 
+    def find_RRSIG_signer(self, owner, type_covered, in_answer=True):
+        type_covered = dns.rdatatype.from_text(type_covered)
+        for r in self._result.answer if in_answer else self._result.authority:
+            if (r.rdclass == dns.rdataclass.IN
+                    and r.rdtype == dns.rdatatype.RRSIG
+                    and r[0].type_covered == type_covered
+                    and owner ==  name.domainname_from_wire(
+                        r.name.to_wire(file=None, compress=None, origin=None))
+                   ):
+                return name.domainname_from_wire(r[0].signer.to_wire(file=None,
+                                                                  compress=None,
+                                                                  origin=None))
+        return None
+
+
     def find_NSEC(self, in_answer=False):
         nsec = []
         for r in self._result.authority if not in_answer else self._result.answer:
