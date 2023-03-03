@@ -134,7 +134,15 @@ Installation
 
 ### From PyPI
 
-To install nsec3map from PyPI, simply run:
+The PyPI package still needs to compile the C extension module for faster hashing,
+which means you need a C compiler as well as the necessary header files for
+Python and libcrypto (OpenSSL) installed.
+
+For Debian-based systems:
+
+    sudo apt-get install python3 python3-pip python3-dev gcc libssl3 libssl-dev
+
+To then install nsec3map from PyPI, simply run:
 
     python3 -m pip install n3map[predict]
 
@@ -142,6 +150,22 @@ If you do not care about NSEC3 zone size prediction and don't want
 numpy and scipy installed, you can use:
 
     python3 -m pip install n3map
+
+#### Installing into a virtual environment
+
+It may be advisable to install n3map into a Python venv, especially if you are
+faced with any dependency problems:
+
+    mkdir venv
+    python3 -m venv venv
+    source venv/bin/activate
+    python3 -m pip install n3map[predict]
+
+More conveniently, you can also use [pipx](https://github.com/pypa/pipx):
+
+    pipx install n3map[predict]
+
+Note that you still need libssl, libssl-dev, gcc and python3-dev.
 
 ### From Git Repository
 
@@ -152,10 +176,13 @@ Dependencies:
   * OpenSSL (libcrypto) >= 3.0.0
   * Optionally numpy and scipy for zone size prediction (recommended)
 
+pip, setuptools and GCC (for the extension module) are required during setup.
+
 On a Debian system, just run
 
-	sudo apt-get install python3 python3-dev python3-dnspython \
-		 libssl3 libssl-dev python3-numpy python3-scipy
+	sudo apt-get install python3 python3-dev gcc python3-pip \
+         python3-setuptools python3-dnspython libssl3 libssl-dev \
+         python3-numpy python3-scipy
 
 Installation:
 
