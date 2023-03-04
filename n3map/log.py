@@ -66,16 +66,26 @@ class Logger(object):
         else:
             raise ValueError
         self.colors = ColorSchemeDefault(colors)
+        self._make_colormap()
+
+    def _make_colormap(self):
+        self._colormap = {
+                LOG_WARN  : self.colors.WARN,
+                LOG_ERROR : self.colors.ERROR,
+                LOG_FATAL : self.colors.ERROR,
+                LOG_DEBUG1: self.colors.DEBUG1,
+                LOG_DEBUG2: self.colors.DEBUG2,
+                LOG_DEBUG3: self.colors.DEBUG3
+            }
 
     def _write_log(self, msg):
         self._file.write(msg)
 
     def _colorize_msg(self, level, *msg):
-        if level == LOG_WARN:
-            return self.colors.wrap_list(self.colors.WARN, list(msg))
-        elif level == LOG_ERROR or level == LOG_FATAL:
-            return self.colors.wrap_list(self.colors.ERROR, list(msg))
-        return msg
+        try:
+            return self.colors.wrap_list(self._colormap[level], list(msg))
+        except KeyError:
+            return msg
 
     def _compile_msg(self, *msg):
         l = list(map(str, msg))
@@ -132,6 +142,7 @@ class ProgressLineLogger(Logger):
     def from_logger(logger):
         plogger = ProgressLineLogger(logger.loglevel, logger._file)
         plogger.colors = logger.colors
+        plogger._colormap = logger._colormap
         return plogger
 
     def enable(self):
@@ -287,6 +298,9 @@ class ColorSchemeDefault:
             colors = Colors()
         self.WARN = colors.BRIGHT_YELLOW
         self.ERROR = colors.BRIGHT_RED
+        self.DEBUG1 = colors.CYAN
+        self.DEBUG2 = colors.CYAN
+        self.DEBUG3 = colors.CYAN
         self.PROGRESSBAR = colors.CYAN
         self.PROGRESS = colors.BRIGHT_CYAN
         self.RECORDS = colors.BRIGHT_GREEN
