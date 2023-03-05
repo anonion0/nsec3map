@@ -491,13 +491,15 @@ class NSECWalkerMixed(NSECWalkerA):
                     self._append_covering_record(covering_nsec)
                 nresult.ns.reset_errors()
                 # try to skip subzone using 'A' queries
-                log.warn("trying to skip sub-zone at ", str(dname))
+                log.warn("trying to skip sub-zone at ", str(dname),
+                         " using 'A' queries")
                 if dname != self.zone and not self._never_prefix_label:
                     dname = self._next_dn_extend_increase(dname)
                 (covering_nsec, dname) = self._extract_next_NSEC_a(dname)
                 if covering_nsec is None:
                     # finished
                     break
+                log.debug2("continuing in mixed mode...")
             elif status == ResultStatus.OK:
                 nresult.ns.reset_errors()
             else:
