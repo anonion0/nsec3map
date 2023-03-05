@@ -51,7 +51,29 @@ Some nameservers do not accept NSEC queries. In such a case, `--query-mode A`
 (short `-A`) can be used instead. For example, to enumerate the root zone, one
 could run the command:
 
-	n3map -v --query-mode A --output root.zone  .
+	n3map -v -A --output root.zone  .
+
+#### Avoiding Sub-Zones
+
+Note that the above command will likely print a lot of warnings about sub-zones
+(children of the zone that we want to enumerate). `n3map` tries its best to
+avoid descending into sub-zones and instead tries to jump over them
+automatically.
+If you wish to avoid most of these warnings, you can tell `n3map` to never add
+prefix labels to the queries it sends using the `--no-prefix-labels` option.
+For example:
+
+    n3map -vA --no-prefix-labels -o root.zone .
+
+This option is particularly useful to enumerate top-level domain (TLD) zones.
+Note however that using it can sometimes lead to a less complete enumeration
+for zones with nested subdomains.
+
+Alternatively, you can try to find nameservers that respond to
+direct NSEC queries (find them e.g. by trying `--query-mode=NSEC`) and tell
+`n3map` to only use those:
+
+    n3map -vo example.com.zone goodns{1,2}.example.com example.com
 
 ### NSEC3 Zone Enumeration
 
