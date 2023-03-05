@@ -167,7 +167,8 @@ result in a long delay before the enumeration is started, especially on older
 systems.
 .TP 
 \fB\-\-no-openssl\fR
-do not use OpenSSL for hashing (slower)
+do not use OpenSSL for hashing. This is slower particularily for zones that use
+a high iteration count.
 
 .SS General Options
 .TP

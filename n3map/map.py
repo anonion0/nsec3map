@@ -617,7 +617,8 @@ Advanced NSEC3 Options:
   Use with caution.
       --label-counter=N      set the initial label counter
       --queue-element-size=N set the queue elment size. (default {queue_element_sz:d})
-      --no-openssl           do not use openssl for hashing (slower)
+      --no-openssl           do not use OpenSSL for hashing (slower, especially
+                              at high iteration counts)
 
 General Options:
   -q, --quiet                do not display progress information during enumeration
