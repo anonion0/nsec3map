@@ -118,8 +118,9 @@ class NSECResult:
                     self._find_RRSIG_signer(nsec.owner, 'NSEC'))
 
         # check for NS or SOA records in authority section
-        if self._detect_subdomain_auth() is not None:
-            return (ResultStatus.SUBZONE, None, self._detect_subdomain_auth())
+        sub_owner = self._detect_subdomain_auth()
+        if sub_owner is not None:
+            return (ResultStatus.SUBZONE, None, sub_owner)
 
         log.error("no covering NSEC RR received for domain name ",
                 str(self.query_dn))
@@ -142,9 +143,9 @@ class NSECResult:
             # NXDOMAIN but no NSEC
 
             # check for NS or SOA records in authority section
-            if self._detect_subdomain_auth() is not None:
-                return (ResultStatus.SUBZONE, None,
-                        self._detect_subdomain_auth())
+            sub_owner = self._detect_subdomain_auth()
+            if sub_owner is not None:
+                return (ResultStatus.SUBZONE, None, sub_owner)
 
             log.error("no covering NSEC RR received in NXDOMAIN response for ",
                       str(self.query_dn))
@@ -179,9 +180,9 @@ class NSECResult:
             # check for NS or SOA records in authority section
             # this check is just to provide better feedback,
             # we'll treat this as a sub-zone in any case
-            if self._detect_subdomain_auth() is not None:
-                return (ResultStatus.SUBZONE, None,
-                        self._detect_subdomain_auth())
+            sub_owner = self._detect_subdomain_auth()
+            if sub_owner is not None:
+                return (ResultStatus.SUBZONE, None, sub_owner)
 
             log.warn("got NOERROR response but no RRs for owner: ",
                      str(self.query_dn), ", looks like a sub-zone")
