@@ -1,4 +1,5 @@
 import struct
+import itertools
 
 import dns.resolver
 import dns.exception
@@ -59,6 +60,14 @@ class DNSPythonResult(object):
                         r.name.to_wire(file=None, compress=None, origin=None))
         return None
 
+    def find_NS(self, in_answer=True):
+        for r in self._result.answer if in_answer else self._result.authority:
+            if (r.rdclass == dns.rdataclass.IN and
+                    r.rdtype == dns.rdatatype.NS):
+                return name.domainname_from_wire(
+                        r.name.to_wire(file=None, compress=None, origin=None))
+        return None
+
     def find_DNSKEY(self):
         for r in self._result.answer:
             if (r.rdclass == dns.rdataclass.IN and
@@ -69,6 +78,21 @@ class DNSPythonResult(object):
 
     def answer_length(self):
         return len(self._result.answer)
+
+    def find_RRSIG_signer(self, owner, type_covered, in_answer=True):
+        type_covered = dns.rdatatype.from_text(type_covered)
+        for r in self._result.answer if in_answer else self._result.authority:
+            if (r.rdclass == dns.rdataclass.IN
+                    and r.rdtype == dns.rdatatype.RRSIG
+                    and r[0].type_covered == type_covered
+                    and owner ==  name.domainname_from_wire(
+                        r.name.to_wire(file=None, compress=None, origin=None))
+                   ):
+                return name.domainname_from_wire(r[0].signer.to_wire(file=None,
+                                                                  compress=None,
+                                                                  origin=None))
+        return None
+
 
     def find_NSEC(self, in_answer=False):
         nsec = []
@@ -88,6 +112,10 @@ class DNSPythonResult(object):
                         _rrtypes_to_text(types)
                         ))
         return nsec
+
+    def all_NSEC_rrs(self):
+        return itertools.chain(self.find_NSEC(in_answer=False),
+                               self.find_NSEC(in_answer=True))
 
 
     def find_NSEC3(self):
