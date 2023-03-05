@@ -358,6 +358,35 @@ class NSECWalkerA(NSECWalker):
         log.info("starting enumeration in A query mode...")
         return super(NSECWalkerA,self).walk()
 
+    def _increase_dn_next_step(self, dname):
+        if self._never_prefix_label:
+            return dname
+        return self._next_dn_extend_increase(dname)
+
+
+    def _skip_subzone(self, dname, query_dn, subzone):
+        if dname == self.zone:
+            log.warn("trying to skip sub-zone ", str(query_dn))
+            return self._increase_dn_next_step(query_dn)
+
+        if (subzone is not None
+                and subzone.num_labels() <= dname.num_labels()):
+            # if we know the subzone, we can move on from there
+            log.debug1("learned sub-zone from response: ",
+                       str(subzone))
+            log.warn("trying to skip confirmed sub-zone ", str(subzone))
+            return self._increase_dn_next_step(subzone)
+
+        if dname.num_labels() > self.zone.num_labels() + 1:
+            (_, dname) = dname.split(1)
+            log.warn("could not learn sub-zone name from response,",
+                     " skipping ", str(dname))
+            return self._increase_dn_next_step(dname)
+
+        log.warn("trying to skip sub-zone ", str(dname))
+        return self._increase_dn_next_step(dname)
+
+
     def _extract_next_NSEC_a(self, dname):
         while not self._finished(dname):
             if self._never_prefix_label and dname != self.zone:
@@ -367,38 +396,22 @@ class NSECWalkerA(NSECWalker):
             nresult = self._query(query_dn, rrtype='A')
             (status, covering_nsec, subzone) = nresult.extract()
             if status == ResultStatus.ERROR:
-                if nresult.num_NSEC_rrs() == 0:
-                    log.error(self._no_NSEC_error(nresult.ns))
-                self.queryprovider.add_ns_error(nresult.ns)
+                if query_dn.num_labels() == self.zone.num_labels() + 1:
+                    # this query_dn *has* to be part of the zone and yet we got
+                    # nothing: some server error
+                    if nresult.num_NSEC_rrs() == 0:
+                        log.error(self._no_NSEC_error(nresult.ns))
+                    self.queryprovider.add_ns_error(nresult.ns)
+                    continue
+
+                dname = self._skip_subzone(dname, query_dn, None)
                 continue
             elif status == ResultStatus.SUBZONE:
                 nresult.ns.reset_errors()
                 if covering_nsec is not None:
                     # we write this record down anyway
                     self._append_covering_record(covering_nsec)
-                if dname == self.zone:
-                    log.warn("trying to skip sub-zone ", str(query_dn))
-                    if self._never_prefix_label:
-                        # make sure we don't increase the label twice
-                        dname = query_dn
-                    else:
-                        dname = self._next_dn_extend_increase(query_dn)
-                else:
-                    if (subzone is not None
-                            and subzone.num_labels() <= dname.num_labels()):
-                        # if we know the subzone, we can move on from there
-                        log.debug1("learned sub-zone from response: ",
-                                   str(subzone))
-                        dname = subzone
-                    elif dname.num_labels() > self.zone.num_labels() + 1:
-                        (_, dname) = dname.split(dname.num_labels() -
-                                            self.zone.num_labels() - 1)
-                        log.warn("could not learn sub-zone name from response,",
-                                 " skipping ", str(dname), " ENTIRELY to avoid",
-                                 " loop")
-
-                    log.warn("trying to skip sub-zone ", str(dname))
-                    dname = self._next_dn_extend_increase(dname)
+                dname = self._skip_subzone(dname, query_dn, subzone)
                 continue
             elif status == ResultStatus.HITOWNER:
                 # hit an existing name, but it is part of this zone
