@@ -1,4 +1,5 @@
 import struct
+import itertools
 
 import dns.resolver
 import dns.exception
@@ -59,6 +60,14 @@ class DNSPythonResult(object):
                         r.name.to_wire(file=None, compress=None, origin=None))
         return None
 
+    def find_NS(self, in_answer=True):
+        for r in self._result.answer if in_answer else self._result.authority:
+            if (r.rdclass == dns.rdataclass.IN and
+                    r.rdtype == dns.rdatatype.NS):
+                return name.domainname_from_wire(
+                        r.name.to_wire(file=None, compress=None, origin=None))
+        return None
+
     def find_DNSKEY(self):
         for r in self._result.answer:
             if (r.rdclass == dns.rdataclass.IN and
@@ -103,6 +112,10 @@ class DNSPythonResult(object):
                         _rrtypes_to_text(types)
                         ))
         return nsec
+
+    def all_NSEC_rrs(self):
+        return itertools.chain(self.find_NSEC(in_answer=False),
+                               self.find_NSEC(in_answer=True))
 
 
     def find_NSEC3(self):
