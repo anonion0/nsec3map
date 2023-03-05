@@ -82,7 +82,7 @@ class NSEC3Walker(walker.Walker):
         got_new = False
         # TODO: check if records cover query name
         for rr in recv_rr:
-            log.debug2('received NSEC3 RR: ', str(rr))
+            log.debug3('received NSEC3 RR: ', str(rr))
         for rr in recv_rr:
             if not rr.part_of_zone(self.zone):
                 log.warn('NSEC3 RR not part of zone: ', str(rr))
