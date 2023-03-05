@@ -58,8 +58,9 @@ class PreHashProcess(multiprocessing.Process):
         self.num_processes = num_processes
 
         if self.use_cext and not HAS_NSEC3HASH:
-            log.error("failed to import nsec3hash module\n",
-                    "falling back to python-based hashing")
+            log.error("failed to import nsec3hash module, ",
+                      "falling back to Python-based hashing\n",
+                      "use --no-openssl to avoid printing this error")
             self.use_cext = False
 
         self.zone = None
