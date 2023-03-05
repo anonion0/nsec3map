@@ -271,7 +271,10 @@ class DomainName(object):
             return (self > owner or self < next_owner)
         return (self > owner and self < next_owner)
 
+    def num_labels(self):
+        return len(self.labels)
 
+    # this really checks if self is below (or equal) to zone
     def part_of_zone(self, zone):
         if len(self.labels) >= len(zone.labels):
             for l in zip(reversed(zone.labels), reversed(self.labels)):

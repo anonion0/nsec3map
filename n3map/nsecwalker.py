@@ -78,72 +78,77 @@ class NSECResult:
         if (soa_owner is not None and soa_owner != self.walk_zone
                 and soa_owner.part_of_zone(self.walk_zone)):
             log.debug1("subdomain SOA RR received: ", str(soa_owner))
-            return True
-        return False
+            return soa_owner
+        return None
 
     def _detect_subdomain_ns(self):
         ns_owner = self.queryresult.find_NS(in_answer=False)
         if (ns_owner is not None and ns_owner != self.walk_zone
                 and ns_owner.part_of_zone(self.walk_zone)):
             log.debug1("subdomain NS RR received: ", str(ns_owner))
-            return True
-        return False
+            return ns_owner
+        return None
 
     def _detect_subdomain_auth(self):
         # check for NS or SOA records in authority
-        if self._detect_subdomain_ns():
+        ns_owner = self._detect_subdomain_ns()
+        if ns_owner is not None:
             log.warn("walked into a sub-zone at ", str(self.query_dn),
                      " (subdomain NS received)")
-            return True
-        if self._detect_subdomain_soa():
+            return ns_owner
+        soa_owner = self._detect_subdomain_soa()
+        if soa_owner is not None:
             log.warn("walked into a sub-zone at ", str(self.query_dn),
                      " (subdomain SOA received)")
-            return True
-        return False
+            return soa_owner
+        return None
 
 
     def _extract_from_NSEC_query(self):
         nsec = self.find_covering_nsec()
         if nsec is not None:
-            return (ResultStatus.OK, nsec)
+            return (ResultStatus.OK, nsec, None)
 
         nsec = self.find_covering_nsec(check_signer=False)
         if nsec is not None:
             # got NSEC record, but RRSIG signer doesn't match zone
             log.warn("walked into a sub-zone at ", str(self.query_dn),
                      " (RRSIG signer for NSEC RR does not match zone)")
-            return (ResultStatus.SUBZONE, nsec)
+            return (ResultStatus.SUBZONE, nsec,
+                    self._find_RRSIG_signer(nsec.owner, 'NSEC'))
 
         # check for NS or SOA records in authority section
-        if self._detect_subdomain_auth():
-            return (ResultStatus.SUBZONE, None)
+        if self._detect_subdomain_auth() is not None:
+            return (ResultStatus.SUBZONE, None, self._detect_subdomain_auth())
 
         log.error("no covering NSEC RR received for domain name ",
                 str(self.query_dn))
-        return (ResultStatus.ERROR, None)
+        return (ResultStatus.ERROR, None, None)
 
     def _extract_from_A_query(self):
         if self.status() == 'NXDOMAIN':
             nsec = self.find_covering_nsec(inclusive=False)
             if nsec is not None:
-                return (ResultStatus.OK, nsec)
+                return (ResultStatus.OK, nsec, None)
 
             nsec = self.find_covering_nsec(check_signer=False, inclusive=False)
             if nsec is not None:
                 # got NSEC record, but RRSIG signer doesn't match zone
                 log.warn("walked into a sub-zone at ", str(self.query_dn),
                          " (RRSIG signer for NSEC RR does not match zone)")
-                return (ResultStatus.SUBZONE, nsec)
+                return (ResultStatus.SUBZONE, nsec,
+                        self._find_RRSIG_signer(nsec.owner, 'NSEC'))
 
             # NXDOMAIN but no NSEC
 
             # check for NS or SOA records in authority section
-            if self._detect_subdomain_auth():
-                return (ResultStatus.SUBZONE, None)
+            if self._detect_subdomain_auth() is not None:
+                return (ResultStatus.SUBZONE, None,
+                        self._detect_subdomain_auth())
 
             log.error("no covering NSEC RR received in NXDOMAIN response for ",
                       str(self.query_dn))
-            return (ResultStatus.ERROR, None)
+            return (ResultStatus.ERROR, None, None)
 
         elif self.status() == 'NOERROR':
             if self.queryresult.answer_length() > 0:
@@ -152,11 +157,11 @@ class NSECResult:
                 if signer is None:
                     log.warn("walked into a sub-zone at ", str(self.query_dn),
                              " (no RRSIG found)")
-                    return (ResultStatus.SUBZONE, None)
+                    return (ResultStatus.SUBZONE, None, None)
                 if signer != self.walk_zone:
                     log.warn("walked into a sub-zone at ", str(self.query_dn),
                              " (RRSIG signer does not match zone)")
-                    return (ResultStatus.SUBZONE, None)
+                    return (ResultStatus.SUBZONE, None, signer)
                 # part of this zone
 
                 # check for NSEC records anyway. This can happen e.g. if the
@@ -164,9 +169,9 @@ class NSECResult:
                 # FIXME: wildcards could probably be handled more explicitly
                 nsec = self.find_covering_nsec(inclusive=False)
                 if nsec is not None:
-                    return (ResultStatus.OK, nsec)
+                    return (ResultStatus.OK, nsec, None)
 
-                return (ResultStatus.HITOWNER, None)
+                return (ResultStatus.HITOWNER, None, None)
             # this happens e.g. when the query name with added label
             # (usually \x00) in front is part of a zone delegated to a
             # (possibly different) nameserver
@@ -174,17 +179,18 @@ class NSECResult:
             # check for NS or SOA records in authority section
             # this check is just to provide better feedback,
             # we'll treat this as a sub-zone in any case
-            if self._detect_subdomain_auth():
-                return (ResultStatus.SUBZONE, None)
+            if self._detect_subdomain_auth() is not None:
+                return (ResultStatus.SUBZONE, None,
+                        self._detect_subdomain_auth())
 
             log.warn("got NOERROR response but no RRs for owner: ",
                      str(self.query_dn), ", looks like a sub-zone")
-            return (ResultStatus.SUBZONE, None)
+            return (ResultStatus.SUBZONE, None, None)
 
         # this should never happen as anything other than 'NXDOMAIN' or
         # 'NOERROR' already causes an error in queryprovider
         log.error('unexpected response status: ', str(self.status()))
-        return (ResultStatus.ERROR, None)
+        return (ResultStatus.ERROR, None, None)
 
     def extract(self):
         if self.query_type == 'NSEC':
@@ -205,6 +211,8 @@ class NSECWalker(walker.Walker):
         self.start, self.end = self._get_start_end(startname, endname)
 
     def _query(self, query_dn, rrtype='A'):
+        if not query_dn.part_of_zone(self.zone):
+            raise NSECWalkError('query_dn not part of zone!')
         result, ns = self.queryprovider.query(query_dn, rrtype)
         nresult = NSECResult(self.zone, query_dn, rrtype, result, ns)
         nresult.log_NSEC_rrs()
@@ -304,7 +312,7 @@ class NSECWalkerN(NSECWalker):
         covering_nsec = None
         while not self._finished(dname):
             nresult = self._query(dname, rrtype='NSEC')
-            (status, covering_nsec) = nresult.extract()
+            (status, covering_nsec, subzone) = nresult.extract()
             if status == ResultStatus.ERROR:
                 if nresult.num_NSEC_rrs() == 0:
                     log.error(self._no_NSEC_error(nresult.ns))
@@ -356,7 +364,7 @@ class NSECWalkerA(NSECWalker):
             else:
                 query_dn = self._next_dn_label_add(dname)
             nresult = self._query(query_dn, rrtype='A')
-            (status, covering_nsec) = nresult.extract()
+            (status, covering_nsec, subzone) = nresult.extract()
             if status == ResultStatus.ERROR:
                 if nresult.num_NSEC_rrs() == 0:
                     log.error(self._no_NSEC_error(nresult.ns))
@@ -375,6 +383,19 @@ class NSECWalkerA(NSECWalker):
                     else:
                         dname = self._next_dn_extend_increase(query_dn)
                 else:
+                    if (subzone is not None
+                            and subzone.num_labels() <= dname.num_labels()):
+                        # if we know the subzone, we can move on from there
+                        log.debug1("learned sub-zone from response: ",
+                                   str(subzone))
+                        dname = subzone
+                    elif dname.num_labels() > self.zone.num_labels() + 1:
+                        (_, dname) = dname.split(dname.num_labels() -
+                                            self.zone.num_labels() - 1)
+                        log.warn("could not learn sub-zone name from response,",
+                                 " skipping ", str(dname), " ENTIRELY to avoid",
+                                 " loop")
+
                     log.warn("trying to skip sub-zone ", str(dname))
                     dname = self._next_dn_extend_increase(dname)
                 continue
@@ -444,7 +465,7 @@ class NSECWalkerMixed(NSECWalkerA):
         covering_nsec = None
         while not self._finished(dname):
             nresult = self._query(dname, rrtype='NSEC')
-            (status, covering_nsec) = nresult.extract()
+            (status, covering_nsec, subzone) = nresult.extract()
             if status == ResultStatus.ERROR:
                 if nresult.num_NSEC_rrs() == 0:
                     log.error(self._no_NSEC_error(nresult.ns))
