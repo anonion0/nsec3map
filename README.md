@@ -176,7 +176,8 @@ Dependencies:
   * OpenSSL (libcrypto) >= 3.0.0
   * Optionally numpy and scipy for zone size prediction (recommended)
 
-pip, setuptools and GCC (for the extension module) are required during setup.
+Additionally, pip, setuptools and GCC (for the extension module) are required
+during setup.
 
 On a Debian system, just run
 
