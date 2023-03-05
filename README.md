@@ -151,7 +151,7 @@ numpy and scipy installed, you can use:
 
     python3 -m pip install n3map
 
-#### Installing into a virtual environment
+#### Installing into a Virtual Environment
 
 It may be advisable to install n3map into a Python venv, especially if you are
 faced with any dependency problems:
@@ -204,8 +204,13 @@ Alternatively, you can install it w/o pip:
 
 	sudo python3 setup.py install
 
+#### Running directly from Source Directory
+
 Alternatively, you can also run nsec3map directly from the source directory
-without installing it.
+without installing it:
+
+    ./n3map.py [options]
+
 If you want to use OpenSSL accelerated
 hashing however, you still need to build the extension module:
 
