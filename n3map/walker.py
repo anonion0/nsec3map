@@ -2,13 +2,15 @@ from . import log
 from . import name
 from .exception import N3MapError
 
-from random import randint
+import secrets
 
 def detect_dnssec_type(zone, queryprovider, attempts=5):
     log.info("detecting zone type...")
     i = 0
     while attempts == 0 or i < attempts:
-        label_gen = name.label_generator(name.hex_label,init=randint(0,0xFFFFFFFFFFFFFFFF))
+        label_gen = name.label_generator(name.hex_label,
+                                         init=secrets.randbits(30 +
+                                             secrets.randbelow(31)))
         dname = name.DomainName(next(label_gen)[0], *zone.labels)
         result, _ = queryprovider.query(dname, rrtype='A')
 
