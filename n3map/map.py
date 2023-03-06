@@ -156,6 +156,9 @@ def n3map_main(argv):
         if options['zone_type'] == 'auto':
             options['zone_type'] = n3map.walker.detect_dnssec_type(zone,
                     qprovider, options['detection_attempts'])
+            if options['detect_only']:
+                print("{}: {}".format(str(zone), options['zone_type']))
+                return 0
 
         if options['zone_type'] == 'nsec3':
             (hash_queues, process_pool) = prehash.create_prehash_pool(
@@ -301,6 +304,7 @@ def default_options():
             'queue_element_size' : 256,
             'use_openssl' : True,
             'ipproto' : '',
+            'detect_only' : False,
             }
     return opts
 
@@ -341,7 +345,8 @@ def parse_arguments(argv):
             'no-openssl',
             'verbose',
             'color=',
-            'version'
+            'version',
+            'detect-only'
     ]
     options = default_options()
     opts = '346AMNabc:e:f:hi:lm:no:pqs:v'
@@ -365,6 +370,9 @@ def parse_arguments(argv):
 
         elif opt in ('-3', '--nsec3'):
             options['zone_type'] = 'nsec3'
+
+        elif opt in ('--detect-only'):
+            options['detect_only'] = True
 
         elif opt in ('-4',):
             options['ipproto'] = 'ipv4'
@@ -636,6 +644,8 @@ General Options:
       --detection-attempts=N limit the maximum number of zone type (NSEC/NSEC3)
                                detection attempts. N=0 specifies no limit.
                                (default {detection_attempts:d})
+      --detect-only          detect and print zone type only, don't enumerate
+                               the zone.
       --omit-soa-check       don't check the SOA record of the zone
                                before starting enumeration (use with caution).
       --omit-dnskey-check    don't check the DNSKEY record of the zone

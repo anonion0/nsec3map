@@ -194,6 +194,9 @@ before it is removed from the nameserver list.
 Specifies how many times to try zone type (NSEC/NSEC3) detection. N=0 specifies
 an unlimited number of attempts.
 .TP
+.B \-\-detect-only
+detect zone type, write it to stdout and exit. Don't enumerate the zone.
+.TP
 .B \-\-omit-soa-check
 Do not check the SOA record of the zone before starting the enumeration. This
 option may be used if you wish to perform no unnecessary queries. However, it
