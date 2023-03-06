@@ -232,7 +232,7 @@ Alternatively, you can install it w/o pip:
 Alternatively, you can also run nsec3map directly from the source directory
 without installing it:
 
-    ./n3map.py [options]
+    ./map.py [options]
 
 If you want to use OpenSSL accelerated
 hashing however, you still need to build the extension module:
